@@ -1,44 +1,58 @@
+"""This module defines functions for downloading the housing system metadata.
+
+This metadata is gathered by scraping the Genshin Impact Wiki.
+"""
+
 import asyncio
 from collections.abc import Callable
 import click
-import json
-import os
+import locale
 import re
-from typing import List, Dict, Optional
+from typing import List, Dict
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 import httpx
 import tqdm
 import tqdm.asyncio
 
-from config import WIKI_BASE_URL
-from utils import (
-    clean_dict,
-    gather_dict,
-    load_data,
-    parse_int,
-    parse_tag_text,
-    save_data,
-)
+
+from .file import load_metadata, save_metadata
+from .reset import create_metadata_schema
+from .utils import clean_dict, gather_dict
 
 
-async def get_soup(client: httpx.AsyncClient, url: str) -> BeautifulSoup:
-    """Creates a soup for requested `url`
+locale.setlocale(locale.LC_ALL, "en_US.UTF8")
+
+
+async def fetch_soup(client: httpx.AsyncClient, url: str) -> BeautifulSoup:
+    """Creates soup for HTML fetched from requested `url`
 
     Args:
         client (httpx.AsyncClient): HTTP client
         url (str): source URL
 
     Returns:
-        BeautifulSoup: soup of HTML from url
+        BeautifulSoup: soup of HTML from URL
     """
     req = await client.get(url)
 
     return BeautifulSoup(req.text, "html.parser")
 
 
+def create_wiki_url(page: str) -> str:
+    """Creates canonical URL to `page` on wiki
+
+    Args:
+        page (str): subject page
+
+    Returns:
+        str: canonical URL
+    """
+    return f"https://genshin-impact.fandom.com{page}"
+
+
 async def parse_urls(client: httpx.AsyncClient, url: str) -> List[str]:
-    """Gathers the list of URLs from a particular `url`
+    """Parses list of useful URLs from HTML from `url`
 
     Args:
         client (httpx.AsyncClient): HTTP client
@@ -47,34 +61,46 @@ async def parse_urls(client: httpx.AsyncClient, url: str) -> List[str]:
     Returns:
         List[str]: list of URLS
     """
-    soup = await get_soup(client, url)
+    soup = await fetch_soup(client, url)
 
     return list(
         set(
-            f"""{WIKI_BASE_URL}{row.find("a").get("href")}"""
+            create_wiki_url(row.find("a").get("href"))
             for table in soup.select("table.article-table.sortable")
             for row in table.find("tbody").find_all("tr")[1:]
         )
     )
 
 
+def get_tag_text(tag: Tag) -> str:
+    """Returns stripped text in `tag`
+
+    Args:
+        tag (Tag): HTML tag
+
+    Returns:
+        str: stripped text
+    """
+    return tag.text.strip()
+
+
 async def parse_costs_for_furnishings_from_chubby(
     client: httpx.AsyncClient, url: str
 ) -> Dict[str, int]:
-    """Gathers the costs for furnishings that are purchased from Chubby
+    """Parses costs for furnishings purchased from Chubby
 
     Args:
         client (httpx.AsyncClient): HTTP client
         url (str): source URL
 
     Returns:
-        Dict[str, int]: dict of furnishing costs
+        Dict[str, int]: mapping of furnishings to costs
     """
-    soup = await get_soup(client, url)
+    soup = await fetch_soup(client, url)
 
     return {
-        parse_tag_text(row.find_all("a")[1]): parse_int(
-            parse_tag_text(row.find_all("td")[1])
+        get_tag_text(row.find_all("a")[1]): locale.atoi(
+            get_tag_text(row.find_all("td")[1])
         )
         for row in soup.find("table", {"class": "article-table"})
         .find("tbody")
@@ -82,16 +108,16 @@ async def parse_costs_for_furnishings_from_chubby(
     }
 
 
-async def get_sources() -> dict:
-    """Gathers intermediate data required for scraping
+async def fetch_sources() -> dict:
+    """Fetches intermediate data required for scraping
 
     Returns:
-        dict: intermediate requirements
+        dict: mapping of source to intermediate data
     """
     async with httpx.AsyncClient(timeout=None) as client:
         tasks = {
             f"{case.lower()}_urls": parse_urls(
-                client, f"{WIKI_BASE_URL}/wiki/Housing/{case}"
+                client, create_wiki_url(f"/wiki/Housing/{case}")
             )
             for case in ["Furnishings", "Sets"]
         }
@@ -100,7 +126,7 @@ async def get_sources() -> dict:
             {
                 **tasks,
                 "costs": parse_costs_for_furnishings_from_chubby(
-                    client, f"{WIKI_BASE_URL}/wiki/Chubby"
+                    client, create_wiki_url("/wiki/Chubby")
                 ),
             }
         )
@@ -108,23 +134,23 @@ async def get_sources() -> dict:
     return results
 
 
-async def scrape_furnishing(
-    client: httpx.AsyncClient, url: str, data: dict, sources: dict
+async def parse_furnishing(
+    client: httpx.AsyncClient, url: str, metadata: dict, sources: dict
 ):
-    """Scrapes a furnishing from a `url`
+    """Parses furnishing from HTML from `url`
 
     Args:
         client (httpx.AsyncClient): HTTP client
         url (str): source URL
-        data (dict): database
-        sources (dict): intermediate requirements
+        metadata (dict): housing metadata
+        sources (dict): intermediate data
     """
-    soup = await get_soup(client, url)
+    soup = await fetch_soup(client, url)
 
     name = re.sub(
         r"\/Housing$",
         "",
-        parse_tag_text(soup.find("h1", {"class": "page-header__title"})),
+        get_tag_text(soup.find("h1", {"class": "page-header__title"})),
     )
 
     category_heirarchy = ["categories", "subcategories", "types"]
@@ -132,13 +158,13 @@ async def scrape_furnishing(
     category, subcategory, type = [
         (
             c_map.get(c)
-            if c in (c_map := data[category_heirarchy[i]]["map"])
+            if c in (c_map := metadata[category_heirarchy[i]]["map"])
             else [
-                data[category_heirarchy[i]]["list"].append(c),
+                metadata[category_heirarchy[i]]["list"].append(c),
                 c_map.setdefault(c, len(c_map)),
             ][1]
         )
-        if c != None
+        if c is not None
         else None
         for i, c in enumerate(
             (
@@ -146,9 +172,9 @@ async def scrape_furnishing(
                     filter(
                         lambda t: len(t) > 0,
                         map(
-                            lambda t: parse_tag_text(t),
+                            lambda t: get_tag_text(t),
                             filter(
-                                lambda t: t.find("img") == None,
+                                lambda t: t.find("img") is None,
                                 soup.find("div", {"data-source": "category"})
                                 .find("div", {"class": "pi-data-value"})
                                 .children,
@@ -162,32 +188,35 @@ async def scrape_furnishing(
     ]
 
     cost = (
-        parse_int(re.search(r"\d+", cost_match.group()).group())
-        if ((cost_match := re.search(r"Realm Currency.*\d+\.", soup.text)) != None)
+        locale.atoi(re.search(r"\d+", cost_match.group()).group())
+        if ((cost_match := re.search(r"Realm Currency.*\d+\.", soup.text)) is not None)
         else (sources["costs"].get(name, None))
     )
 
     energy = (
-        parse_int(parse_tag_text(energy_tag))
-        if ((energy_tag := soup.find("td", {"data-source": "adeptal_energy"})) != None)
+        locale.atoi(get_tag_text(energy_tag))
+        if (
+            (energy_tag := soup.find("td", {"data-source": "adeptal_energy"}))
+            is not None
+        )
         else None
     )
 
     load = (
-        parse_int(parse_tag_text(load_tag))
-        if ((load_tag := soup.find("td", {"data-source": "load"})) != None)
+        locale.atoi(get_tag_text(load_tag))
+        if ((load_tag := soup.find("td", {"data-source": "load"})) is not None)
         else None
     )
 
     time = (
-        parse_int(
-            parse_tag_text(
+        locale.atoi(
+            get_tag_text(
                 time_tag.find("span", {"class": "new_genshin_recipe_header_text"})
             ).split()[0]
         )
         if (
             (time_tag := soup.find("span", {"class": "new_genshin_recipe_header_sub"}))
-            != None
+            is not None
         )
         else None
     )
@@ -196,17 +225,17 @@ async def scrape_furnishing(
         {
             (
                 m_map.get(m)
-                if m in (m_map := data["materials"]["map"])
+                if m in (m_map := metadata["materials"]["map"])
                 else [
-                    data["materials"]["list"].append(m),
+                    metadata["materials"]["list"].append(m),
                     m_map.setdefault(m, len(m_map)),
                 ][1]
             ): amount
             for m, amount in {
-                parse_tag_text(
+                get_tag_text(
                     material_tag.find("div", {"class": "card_caption"})
-                ): parse_int(
-                    parse_tag_text(material_tag.find("div", {"class": "card_text"}))
+                ): locale.atoi(
+                    get_tag_text(material_tag.find("div", {"class": "card_text"}))
                 )
                 for material_tag in recipe_tag.findAll(
                     "div", {"class": "card_with_caption"}, recursive=False
@@ -215,7 +244,7 @@ async def scrape_furnishing(
         }
         if (
             (recipe_tag := soup.find("div", {"class": "new_genshin_recipe_body"}))
-            != None
+            is not None
         )
         else None
     )
@@ -234,30 +263,30 @@ async def scrape_furnishing(
         )
     )
 
-    f_map, f_list = data["furnishings"].values()
+    f_map, f_list = metadata["furnishings"].values()
 
     f_list.append(furnishing)
     f_map.setdefault(name, len(f_map))
 
-    data["cache"][url] = True
-    save_data(data)
+    metadata["cache"][url] = True
+    save_metadata(metadata)
 
 
-async def scrape_set(client: httpx.AsyncClient, url: str, data: dict, sources: dict):
-    """Scrapes a set from a `url`
+async def parse_set(client: httpx.AsyncClient, url: str, metadata: dict, sources: dict):
+    """Parses set from HTML from `url`
 
     Args:
         client (httpx.AsyncClient): HTTP client
         url (str): source URL
-        data (dict): database
-        sources (dict): intermediate requirements
+        matadata (dict): housing metadata
+        sources (dict): intermediate data
     """
-    soup = await get_soup(client, url)
+    soup = await fetch_soup(client, url)
 
     name = re.sub(
         r"\/Housing$",
         "",
-        parse_tag_text(soup.find("h1", {"class": "page-header__title"})),
+        get_tag_text(soup.find("h1", {"class": "page-header__title"})),
     )
 
     category_heirarchy = ["categories", "subcategories", "types"]
@@ -265,13 +294,13 @@ async def scrape_set(client: httpx.AsyncClient, url: str, data: dict, sources: d
     category, subcategory, type = [
         (
             c_map.get(c)
-            if c in (c_map := data[category_heirarchy[i]]["map"])
+            if c in (c_map := metadata[category_heirarchy[i]]["map"])
             else [
-                data[category_heirarchy[i]]["list"].append(c),
+                metadata[category_heirarchy[i]]["list"].append(c),
                 c_map.setdefault(c, len(c_map)),
             ][1]
         )
-        if c != None
+        if c is not None
         else None
         for i, c in enumerate(
             (
@@ -279,9 +308,9 @@ async def scrape_set(client: httpx.AsyncClient, url: str, data: dict, sources: d
                     filter(
                         lambda t: len(t) > 0,
                         map(
-                            lambda t: parse_tag_text(t),
+                            lambda t: get_tag_text(t),
                             filter(
-                                lambda t: t.find("img") == None,
+                                lambda t: t.find("img") is None,
                                 soup.find("div", {"data-source": "category"})
                                 .find("div", {"class": "pi-data-value"})
                                 .children,
@@ -295,37 +324,40 @@ async def scrape_set(client: httpx.AsyncClient, url: str, data: dict, sources: d
     ]
 
     cost = (
-        parse_int(re.search(r"\d+", cost_match.group()).group())
-        if ((cost_match := re.search(r"Realm Currency.*\d+\.", soup.text)) != None)
+        locale.atoi(re.search(r"\d+", cost_match.group()).group())
+        if ((cost_match := re.search(r"Realm Currency.*\d+\.", soup.text)) is not None)
         else None
     )
 
     mora = (
-        parse_int(re.search(r"\d+", mora_match.group()).group())
-        if ((mora_match := re.search(r"Mora.*\d+\.", soup.text)) != None)
+        locale.atoi(re.search(r"\d+", mora_match.group()).group())
+        if ((mora_match := re.search(r"Mora.*\d+\.", soup.text)) is not None)
         else None
     )
 
     energy = (
-        parse_int(parse_tag_text(energy_tag))
-        if ((energy_tag := soup.find("td", {"data-source": "adeptal_energy"})) != None)
+        locale.atoi(get_tag_text(energy_tag))
+        if (
+            (energy_tag := soup.find("td", {"data-source": "adeptal_energy"}))
+            is not None
+        )
         else None
     )
 
     load = (
-        parse_int(parse_tag_text(load_tag))
-        if ((load_tag := soup.find("td", {"data-source": "load"})) != None)
+        locale.atoi(get_tag_text(load_tag))
+        if ((load_tag := soup.find("td", {"data-source": "load"})) is not None)
         else None
     )
 
     furnishings = (
         {
-            data["furnishings"]["map"].get(f): count
+            metadata["furnishings"]["map"].get(f): count
             for f, count in {
-                parse_tag_text(
+                get_tag_text(
                     furnishing_tag.find("div", {"class": "card_caption"})
-                ): parse_int(
-                    parse_tag_text(furnishing_tag.find("div", {"class": "card_text"}))
+                ): locale.atoi(
+                    get_tag_text(furnishing_tag.find("div", {"class": "card_text"}))
                 )
                 for furnishing_tag in recipe_tag.findAll(
                     "div", {"class": "card_with_caption"}, recursive=False
@@ -334,15 +366,15 @@ async def scrape_set(client: httpx.AsyncClient, url: str, data: dict, sources: d
         }
         if (
             (recipe_tag := soup.find("div", {"class": "new_genshin_recipe_body"}))
-            != None
+            is not None
         )
         else None
     )
 
     companions = (
         list(
-            data["furnishings"]["map"].get(
-                parse_tag_text(row.find("span", {"class": "card_font"}))
+            metadata["furnishings"]["map"].get(
+                get_tag_text(row.find("span", {"class": "card_font"}))
             )
             for row in companions_tag[0].find("tbody").find_all("tr")[1:]
         )
@@ -350,7 +382,7 @@ async def scrape_set(client: httpx.AsyncClient, url: str, data: dict, sources: d
         else None
     )
 
-    f_set = clean_dict(
+    hset = clean_dict(
         dict(
             name=name,
             category=category,
@@ -365,75 +397,57 @@ async def scrape_set(client: httpx.AsyncClient, url: str, data: dict, sources: d
         )
     )
 
-    s_map, s_list = data["sets"].values()
+    s_map, s_list = metadata["sets"].values()
 
-    s_list.append(f_set)
+    s_list.append(hset)
     s_map.setdefault(name, len(s_map))
 
-    data["cache"][url] = True
-    save_data(data)
+    metadata["cache"][url] = True
+    save_metadata(metadata)
 
 
-housing_lock = asyncio.Lock()
+DOWNLOAD_LOCK = asyncio.Lock()
 
 
 async def scrape_urls(
     urls: List[str],
-    data: dict,
+    metadata: dict,
     sources: dict,
-    scraper: Callable[httpx.AsyncClient, str, dict, dict],
+    parser: Callable[httpx.AsyncClient, str, dict, dict],
 ):
-    """Scrapes a list of `urls`
+    """Scrapes list of `urls`
 
     Args:
         urls (List[str]): subject list of URLs
-        data (dict): database
-        sources (dict): intermediate requirements
-        scraper (Callable[httpx.AsyncClient, str, dict, dict]): individual URL scraper
+        metadata (dict): housing metadata
+        sources (dict): intermediate data
+        parser (Callable[httpx.AsyncClient, str, dict, dict]): individual URL HTML parser
     """
     async with httpx.AsyncClient(timeout=None) as client:
-        async with housing_lock:
+        async with DOWNLOAD_LOCK:
             for task in tqdm.tqdm(
                 asyncio.as_completed(
-                    list(scraper(client, url, data, sources) for url in urls)
+                    list(parser(client, url, metadata, sources) for url in urls)
                 ),
                 total=len(urls),
+                unit="page",
+                unit_scale=False,
+                unit_divisor=1,
             ):
                 await task
 
 
 @click.command(options_metavar="[options]")
-def scrape():
-    """Downloads housing metadata from Genshin Impact Wiki"""
+def download():
+    """Downloads housing metadata"""
 
-    if (data := load_data()) == None:
-        print("Generating data schema...")
-        data = {
-            key: {"map": {}, "list": []}
-            for key in [
-                "categories",
-                "subcategories",
-                "types",
-                "materials",
-                "furnishings",
-                "sets",
-            ]
-        }
-
-        data["cache"] = {}
-    else:
-        print("Loaded data from local save.")
-
-    cache = data["cache"]
+    if (metadata := load_metadata()) is None:
+        metadata = create_metadata_schema()
 
     print("Refreshing sources...")
-    sources = asyncio.run(get_sources())
+    sources = asyncio.run(fetch_sources())
 
-    urls_for_furnishings = sources["furnishings_urls"]
-    urls_for_sets = sources["sets_urls"]
-
-    total_furnishings_num = len(urls_for_furnishings)
-    total_sets_num = len(urls_for_sets)
+    cache = metadata["cache"]
 
     cache_filter = (
         lambda urls: urls
@@ -441,27 +455,27 @@ def scrape():
         else list(filter(lambda u: u not in cache, urls))
     )
 
-    urls_for_furnishings = cache_filter(urls_for_furnishings)
-    urls_for_sets = cache_filter(urls_for_sets)
+    furnishings_urls = cache_filter(sources["furnishings_urls"])
+    sets_urls = cache_filter(sources["sets_urls"])
 
-    new_furnishings_num = len(urls_for_furnishings)
-    new_sets_num = len(urls_for_sets)
+    f_num = len(furnishings_urls)
+    s_num = len(sets_urls)
 
     if len(cache) > 0:
         print("\nLocal save has:\n")
-        for key in data:
+        for key in metadata:
             if key != "cache":
-                print(f"""  {len(data[key]["list"]):4d}  {key}""")
+                print(f"""  {len(metadata[key]["list"]):4d}  {key}""")
 
-    if new_furnishings_num > 0:
-        print(f"\nGathering {new_furnishings_num} new Furnishings...")
-        asyncio.run(scrape_urls(urls_for_furnishings, data, sources, scrape_furnishing))
+    if f_num > 0:
+        print(f"\nGathering {f_num} new Furnishings...")
+        asyncio.run(scrape_urls(furnishings_urls, metadata, sources, parse_furnishing))
 
-    if new_sets_num > 0:
-        print(f"\nGathering {new_sets_num} new Sets...")
-        asyncio.run(scrape_urls(urls_for_sets, data, sources, scrape_set))
+    if s_num > 0:
+        print(f"\nGathering {s_num} new Sets...")
+        asyncio.run(scrape_urls(sets_urls, metadata, sources, parse_set))
 
-    if any(map(lambda x: x > 0, (new_furnishings_num, new_sets_num))):
-        print("\nHousing data updated!")
+    if any(map(lambda x: x > 0, (f_num, s_num))):
+        print("\nHousing metadata updated!")
     else:
-        print("\nHousing data is already up to date!")
+        print("\nHousing metadata is already updated!")
