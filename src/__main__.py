@@ -8,9 +8,12 @@ python -m tubby
 ```
 """
 
+
 import click
 
+
 from .download import download
+from .manage import manage
 from .meta import DESCRIPTION
 
 
@@ -25,6 +28,7 @@ def main():
 
 
 main.add_command(download)
+main.add_command(manage)
 
 
 if __name__ == "__main__":

@@ -464,7 +464,7 @@ def download():
 
     if len(cache) > 0:
         print("\nLocal save has:\n")
-        for key in metadata:
+        for key in ["materials", "furnishings", "sets"]:
             if key != "cache":
                 print(f"""  {len(metadata[key]["list"]):4d}  {key}""")
 

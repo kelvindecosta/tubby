@@ -18,3 +18,18 @@ def create_metadata_schema():
     metadata["cache"] = {}
 
     return metadata
+
+
+def create_inventory_schema():
+    """Creates schema for inventory"""
+    inventory = {
+        key: {}
+        for key in [
+            "companions",
+            "materials",
+            "furnishings",
+            "sets",
+        ]
+    }
+
+    return inventory
