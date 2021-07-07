@@ -21,6 +21,7 @@ def manage_companions(metadata: dict, inventory: dict):
     names = sorted([c["name"] for c in get_companions(metadata).values()])
     companions = inventory["companions"]
 
+    choice = 0
     while True:
         menu = terminal_menu(
             [
@@ -28,6 +29,7 @@ def manage_companions(metadata: dict, inventory: dict):
                 for name in names
             ],
             title="Companions:\n",
+            cursor_index=choice,
         )
 
         if (choice := menu.show()) is not None:
@@ -59,6 +61,7 @@ def manage_materials(metadata: dict, inventory: dict):
     if len(materials) == 0:
         materials.update({str(get_material_id(metadata, name)): 0 for name in names})
 
+    choice = 0
     while True:
         menu = terminal_menu(
             [
@@ -66,6 +69,7 @@ def manage_materials(metadata: dict, inventory: dict):
                 for name in names
             ],
             title="Materials:\n",
+            cursor_index=choice,
         )
 
         if (choice := menu.show()) is not None:
@@ -91,12 +95,17 @@ def manage():
 
     options = list(inventory.keys())
 
-    menu = terminal_menu(
-        options,
-        title="Manage:\n",
-    )
+    choice = 0
+    while True:
+        menu = terminal_menu(
+            options,
+            title="Manage:\n",
+            cursor_index=choice,
+        )
 
-    while (choice := menu.show()) is not None:
-        dict(companions=manage_companions, materials=manage_materials,)[
-            options[choice]
-        ](metadata, inventory)
+        if (choice := menu.show()) is not None:
+            dict(companions=manage_companions, materials=manage_materials,)[
+                options[choice]
+            ](metadata, inventory)
+        else:
+            break
