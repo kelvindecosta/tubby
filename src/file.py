@@ -1,8 +1,10 @@
 """This module defines variables and functions for file handling"""
 
+
 import json
 import os
 from typing import Optional
+
 
 CONFIG_DIR: str = os.path.join(os.path.dirname(__file__), "config")
 """Folder for configuration"""

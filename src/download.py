@@ -3,6 +3,7 @@
 This metadata is gathered by scraping the Genshin Impact Wiki.
 """
 
+
 import asyncio
 from collections.abc import Callable
 import click
