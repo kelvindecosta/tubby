@@ -2,8 +2,9 @@
 
 
 import asyncio
+import locale
 import os
-from typing import List
+from typing import List, Optional
 
 
 from simple_term_menu import TerminalMenu
@@ -140,3 +141,14 @@ def italic(text: str) -> str:
         str: italicized text
     """
     return f"{ef.italic}{text}{rs.italic}"
+
+
+def input_int(prompt: str) -> Optional[int]:
+    result = input(prompt)
+
+    try:
+        result = locale.atoi(result)
+    except:
+        return None
+
+    return result

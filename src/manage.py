@@ -2,13 +2,19 @@
 
 
 import click
-import locale
 
 
 from .file import load_inventory, load_metadata, save_inventory
-from .query import get_companions, get_furnishings
+from .query import get_companions, get_furnishings, get_furnishing_crafting_materials
 from .reset import create_inventory_schema
-from .utils import bold, clear_screen, color, get_relevant_emoji, terminal_menu
+from .utils import (
+    bold,
+    clear_screen,
+    color,
+    get_relevant_emoji,
+    input_int,
+    terminal_menu,
+)
 
 
 def manage_companions(metadata: dict, inventory: dict):
@@ -73,7 +79,7 @@ def manage_materials(metadata: dict, inventory: dict):
 
         menu = terminal_menu(
             [
-                f"""{materials[str(i)]:4d}×  {get_relevant_emoji(m)}  {m}"""
+                f"{materials[str(i)]:4d}×  {get_relevant_emoji(m)}  {m}"
                 for i, m in materials_md.items()
             ],
             title="Materials\n\n  Track how many of the following are owned:\n",
@@ -86,7 +92,11 @@ def manage_materials(metadata: dict, inventory: dict):
             m_id = str(list(materials_md.keys())[choice])
             print(f"{materials_md[int(m_id)]}:\n\n  Old: {materials[m_id]}")
 
-            materials[m_id] = locale.atoi(input("  New: "))
+            if (new_amount := input_int("  New: ")) is None:
+                input(bold(color("\nInvalid amount!", "red")))
+                continue
+
+            materials[m_id] = new_amount
             save_inventory(inventory)
         else:
             break
@@ -101,6 +111,18 @@ def manage_furnishings(metadata: dict, inventory: dict):
     """
     furnishings_md = dict(
         sorted(get_furnishings(metadata).items(), key=lambda item: item[1]["name"])
+    )
+    furnishings_md = dict(
+        sorted(
+            furnishings_md.items(),
+            key=lambda item: item[1].get("cost") is None,
+        )
+    )
+    furnishings_md = dict(
+        sorted(
+            furnishings_md.items(),
+            key=lambda item: item[1].get("materials") is None,
+        )
     )
     furnishings = inventory["furnishings"]
 
@@ -120,10 +142,10 @@ def manage_furnishings(metadata: dict, inventory: dict):
 
         menu = terminal_menu(
             [
-                f"""{"💰           " if f.get("materials") is None else f"   📘{'🟢' if  furnishings[str(i)]['blueprint'] else '🔴'}  🔨{'🟢' if  furnishings[str(i)]['crafted'] else '🔴'}"}  {furnishings[str(i)]["owned"]:4d}×  {f["name"]}"""
+                f"""{("💰        " if f.get("cost") is not None else "          ") if f.get("materials") is None else f"📘{'🟢' if  furnishings[str(i)]['blueprint'] else '🔴'}  🔨{'🟢' if  furnishings[str(i)]['crafted'] else '🔴'}"}  {furnishings[str(i)]["owned"]:4d}×  {f["name"]}"""
                 for i, f in furnishings_md.items()
             ],
-            title="Furnishings\n\n  Key:\n\n    💰 = purchase\n    📘 = blueprint owned\n    🔨 = crafted atleast once\n\n  Track the following:\n",
+            title="Furnishings\n\n  Key:\n\n    💰 = purchaseable\n    📘 = blueprint owned\n    🔨 = crafted atleast once\n\n  Track the following:\n",
             cursor_index=choice,
         )
 
@@ -176,6 +198,61 @@ def manage_furnishing(metadata: dict, inventory: dict, f_id: int):
                         )
                     )
                 else:
+                    if choice == 2 and not furnishing["crafted"]:
+                        crafting_materials = get_furnishing_crafting_materials(
+                            metadata, f_id, 1
+                        )
+                        print("\nRequired crafting materials:\n")
+                        print(
+                            *[
+                                f"{amount:4d}×  {get_relevant_emoji(name)}  {name}"
+                                for m_id, amount in crafting_materials.items()
+                                if (name := metadata["materials"]["list"][int(m_id)])
+                            ],
+                            sep="\n",
+                        )
+
+                        if (
+                            len(
+                                (
+                                    deduct := input(
+                                        "\nUse materials for crafting from inventory? [y/N]: "
+                                    )
+                                )
+                            )
+                            > 0
+                            and deduct.lower()[0] == "y"
+                        ):
+                            if all(
+                                inventory["materials"][str(m_id)] >= amount
+                                for m_id, amount in crafting_materials.items()
+                            ):
+                                for m_id, amount in crafting_materials.items():
+                                    inventory["materials"][str(m_id)] -= amount
+                            else:
+                                input(
+                                    bold(
+                                        color(
+                                            "\nNot enough materials for crafting!",
+                                            "red",
+                                        )
+                                    )
+                                )
+                                continue
+
+                        if (
+                            len(
+                                (
+                                    deduct := input(
+                                        "\nAdd crafted furnishing to inventory amount? [y/N]: "
+                                    )
+                                )
+                            )
+                            > 0
+                            and deduct.lower()[0] == "y"
+                        ):
+                            furnishing["owned"] += 1
+
                     furnishing[options[choice - 1]] = not furnishing[
                         options[choice - 1]
                     ]
@@ -187,7 +264,57 @@ def manage_furnishing(metadata: dict, inventory: dict, f_id: int):
             clear_screen()
             print(title)
             print(f"""  Old: {furnishing["owned"]}""")
-            furnishing["owned"] = locale.atoi(input("  New: "))
+
+            if (new_amount := input_int("  New: ")) is None:
+                input(bold(color("\nInvalid amount!", "red")))
+                continue
+
+            num_crafted = new_amount - furnishing["owned"]
+
+            if num_crafted > 0 and furnishing.get("blueprint"):
+                crafting_materials = get_furnishing_crafting_materials(
+                    metadata, f_id, num_crafted
+                )
+                print(f"\nRequired crafting materials for {num_crafted} furnishings:\n")
+                print(
+                    *[
+                        f"{amount:4d}×  {get_relevant_emoji(name)}  {name}"
+                        for m_id, amount in crafting_materials.items()
+                        if (name := metadata["materials"]["list"][int(m_id)])
+                    ],
+                    sep="\n",
+                )
+
+                if (
+                    len(
+                        (
+                            deduct := input(
+                                "\nUse materials for crafting from inventory? [y/N]: "
+                            )
+                        )
+                    )
+                    > 0
+                    and deduct.lower()[0] == "y"
+                ):
+                    if all(
+                        inventory["materials"][str(m_id)] >= amount
+                        for m_id, amount in crafting_materials.items()
+                    ):
+                        for m_id, amount in crafting_materials.items():
+                            inventory["materials"][str(m_id)] -= amount
+                        furnishing["crafted"] = True
+                    else:
+                        input(
+                            bold(
+                                color(
+                                    "\nNot enough materials for crafting!",
+                                    "red",
+                                )
+                            )
+                        )
+                        continue
+
+            furnishing["owned"] += num_crafted
             save_inventory(inventory)
 
         if choice is None:
@@ -212,7 +339,7 @@ def manage():
         clear_screen()
 
         menu = terminal_menu(
-            [f"  {get_relevant_emoji(o)}  {o}" for o in options],
+            [f"{get_relevant_emoji(o)}  {o}" for o in options],
             title="Manage inventory of:\n",
             cursor_index=choice,
             show_search_hint=False,
