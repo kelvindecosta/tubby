@@ -8,7 +8,7 @@ import locale
 from .file import load_inventory, load_metadata, save_inventory
 from .query import get_companions, get_furnishing_id, get_material_id
 from .reset import create_inventory_schema
-from .utils import terminal_menu
+from .utils import clear_screen, get_relevant_emoji, terminal_menu
 
 
 def manage_companions(metadata: dict, inventory: dict):
@@ -23,12 +23,14 @@ def manage_companions(metadata: dict, inventory: dict):
 
     choice = 0
     while True:
+        clear_screen()
+        print("Companions\n\n  Track whether or not the following are owned:\n")
+
         menu = terminal_menu(
             [
-                f"""{'🟢' if str(get_furnishing_id(metadata, name)) in companions else '  '} {name}"""
+                f"""{"🟢" if str(get_furnishing_id(metadata, name)) in companions else "  "} {name}"""
                 for name in names
             ],
-            title="Companions:\n",
             cursor_index=choice,
         )
 
@@ -63,16 +65,21 @@ def manage_materials(metadata: dict, inventory: dict):
 
     choice = 0
     while True:
+        clear_screen()
+        print("Materials\n\n  Track how many of the following are owned:\n")
+
         menu = terminal_menu(
             [
-                f"{materials[str(get_material_id(metadata, name))]:4d}×  {name}"
+                f"{materials[str(get_material_id(metadata, name))]:4d}×  {get_relevant_emoji(name)}  {name}"
                 for name in names
             ],
-            title="Materials:\n",
             cursor_index=choice,
+            show_search_hint=True,
         )
 
         if (choice := menu.show()) is not None:
+            clear_screen()
+
             m_id = str(get_material_id(metadata, names[choice]))
             print(f"{names[choice]}:\n  Old: {materials[m_id]}")
 
@@ -97,10 +104,13 @@ def manage():
 
     choice = 0
     while True:
+        clear_screen()
+        print("Manage inventory of:\n")
+
         menu = terminal_menu(
-            options,
-            title="Manage:\n",
+            [f"  {get_relevant_emoji(o)}  {o}" for o in options],
             cursor_index=choice,
+            show_search_hint=False,
         )
 
         if (choice := menu.show()) is not None:

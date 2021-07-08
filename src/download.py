@@ -11,6 +11,7 @@ import locale
 import re
 from typing import List, Dict
 
+
 from bs4 import BeautifulSoup, Tag
 import httpx
 import tqdm

@@ -2,9 +2,19 @@
 
 
 import asyncio
+import os
 from typing import List
 
+
 from simple_term_menu import TerminalMenu
+
+
+def clear_screen():
+    """Clears terminal screen"""
+    if os.name == "nt":
+        _ = os.system("cls")
+    else:
+        _ = os.system("clear")
 
 
 def clean_dict(dictionary: dict) -> dict:
@@ -46,19 +56,49 @@ async def gather_dict(tasks: dict) -> dict:
     }
 
 
-def terminal_menu(options: List[str], **kwargs) -> TerminalMenu:
+def terminal_menu(
+    options: List[str], show_search_hint: bool = True, **kwargs
+) -> TerminalMenu:
     """Creates a terminal menu instance
 
     Args:
         options (List[str]): list of menu options
+        show_search_hint (bool, optional): show search hint. Defaults to True.
 
     Returns:
         TerminalMenu: menu instancce
     """
     return TerminalMenu(
-        [f"{o:{n}}" for o in options if (n := max(map(lambda x: len(x), options)))],
+        options,
         menu_cursor_style=("fg_cyan", "bold"),
         clear_menu_on_exit=False,
-        clear_screen=True,
+        show_search_hint=show_search_hint,
         **kwargs,
     )
+
+
+def get_relevant_emoji(text: str) -> str:
+    """Returns relevant emoji for `text`
+
+    Args:
+        text (str): subject text
+
+    Returns:
+        str: emoji
+    """
+    if text == "companions":
+        return "👤"
+    elif text == "materials" or "Wood" in text or text == "Bamboo Segment":
+        return "🪵 "
+    elif "Chunk" in text:
+        return "🪨 "
+    elif "Dye" in text:
+        return "🖌️ "
+    elif text == "Fabric":
+        return "🏳️ "
+    elif text == "furnishings":
+        return "🪑"
+    elif text == "sets":
+        return "🛋️ "
+    else:
+        return "  "
