@@ -6,9 +6,9 @@ import locale
 
 
 from .file import load_inventory, load_metadata, save_inventory
-from .query import get_companions, get_furnishing_id, get_material_id
+from .query import get_companions, get_furnishings
 from .reset import create_inventory_schema
-from .utils import clear_screen, get_relevant_emoji, terminal_menu
+from .utils import bold, clear_screen, color, get_relevant_emoji, terminal_menu
 
 
 def manage_companions(metadata: dict, inventory: dict):
@@ -18,24 +18,26 @@ def manage_companions(metadata: dict, inventory: dict):
         metadata (dict): housing metadata
         inventory (dict): user inventory
     """
-    names = sorted([c["name"] for c in get_companions(metadata).values()])
+    companions_md = dict(
+        sorted(get_companions(metadata).items(), key=lambda item: item[1]["name"])
+    )
     companions = inventory["companions"]
 
     choice = 0
     while True:
         clear_screen()
-        print("Companions\n\n  Track whether or not the following are owned:\n")
 
         menu = terminal_menu(
             [
-                f"""{"🟢" if str(get_furnishing_id(metadata, name)) in companions else "  "} {name}"""
-                for name in names
+                f"""{"🟢" if str(i) in companions else "🔴"} {c["name"]}"""
+                for i, c in companions_md.items()
             ],
+            title="Companions\n\n  Track whether or not the following are owned:\n",
             cursor_index=choice,
         )
 
         if (choice := menu.show()) is not None:
-            c_id = str(get_furnishing_id(metadata, names[choice]))
+            c_id = str(list(companions_md.keys())[choice])
 
             if c_id not in companions:
                 companions[c_id] = True
@@ -54,38 +56,141 @@ def manage_materials(metadata: dict, inventory: dict):
         metadata (dict): housing metadata
         inventory (dict): user inventory
     """
-    names = sorted(
-        sorted([m for m in metadata["materials"]["map"]]), key=lambda m: m.split()[-1]
+    materials_md = dict(
+        sorted(
+            enumerate(metadata["materials"]["list"]),
+            key=lambda item: item[1].split()[-1],
+        )
     )
-
     materials = inventory["materials"]
 
     if len(materials) == 0:
-        materials.update({str(get_material_id(metadata, name)): 0 for name in names})
+        materials.update({str(i): 0 for i in materials_md})
 
     choice = 0
     while True:
         clear_screen()
-        print("Materials\n\n  Track how many of the following are owned:\n")
 
         menu = terminal_menu(
             [
-                f"{materials[str(get_material_id(metadata, name))]:4d}×  {get_relevant_emoji(name)}  {name}"
-                for name in names
+                f"""{materials[str(i)]:4d}×  {get_relevant_emoji(m)}  {m}"""
+                for i, m in materials_md.items()
             ],
+            title="Materials\n\n  Track how many of the following are owned:\n",
             cursor_index=choice,
-            show_search_hint=True,
         )
 
         if (choice := menu.show()) is not None:
             clear_screen()
 
-            m_id = str(get_material_id(metadata, names[choice]))
-            print(f"{names[choice]}:\n  Old: {materials[m_id]}")
+            m_id = str(list(materials_md.keys())[choice])
+            print(f"{materials_md[int(m_id)]}:\n\n  Old: {materials[m_id]}")
 
             materials[m_id] = locale.atoi(input("  New: "))
             save_inventory(inventory)
         else:
+            break
+
+
+def manage_furnishings(metadata: dict, inventory: dict):
+    """Manages furnishings
+
+    Args:
+        metadata (dict): housing metadata
+        inventory (dict): user inventory
+    """
+    furnishings_md = dict(
+        sorted(get_furnishings(metadata).items(), key=lambda item: item[1]["name"])
+    )
+    furnishings = inventory["furnishings"]
+
+    if len(furnishings) == 0:
+        furnishings.update(
+            {
+                str(i): dict(owned=0)
+                if f.get("materials") is None
+                else dict(owned=0, blueprint=False, crafted=False)
+                for i, f in furnishings_md.items()
+            }
+        )
+
+    choice = 0
+    while True:
+        clear_screen()
+
+        menu = terminal_menu(
+            [
+                f"""{"💰           " if f.get("materials") is None else f"   📘{'🟢' if  furnishings[str(i)]['blueprint'] else '🔴'}  🔨{'🟢' if  furnishings[str(i)]['crafted'] else '🔴'}"}  {furnishings[str(i)]["owned"]:4d}×  {f["name"]}"""
+                for i, f in furnishings_md.items()
+            ],
+            title="Furnishings\n\n  Key:\n\n    💰 = purchase\n    📘 = blueprint owned\n    🔨 = crafted atleast once\n\n  Track the following:\n",
+            cursor_index=choice,
+        )
+
+        if (choice := menu.show()) is not None:
+            manage_furnishing(metadata, inventory, list(furnishings_md.keys())[choice])
+        else:
+            break
+
+
+def manage_furnishing(metadata: dict, inventory: dict, f_id: int):
+    """Manages furnishing with `f_id`
+
+    Args:
+        metadata (dict): housing metadata
+        inventory (dict): user inventory
+        f_id (int): furnishing id
+    """
+    furnishing = inventory["furnishings"][str(f_id)]
+
+    title = f"""{metadata["furnishings"]["list"][f_id]["name"]}:\n"""
+
+    choice = 0
+    while True:
+        clear_screen()
+
+        if furnishing.get("blueprint") is not None:
+            options = ["blueprint", "crafted"]
+
+            menu = terminal_menu(
+                [
+                    f"""{furnishing["owned"]:4d}× owned""",
+                    *[f"""{"🟢" if furnishing[o] else "🔴"} {o}""" for o in options],
+                ],
+                title=title,
+                cursor_index=choice,
+            )
+
+            choice = menu.show()
+
+            if choice in [1, 2]:
+                if choice == 2 and not furnishing["blueprint"]:
+                    input(bold(color("\nCannot craft without blueprint!", "red")))
+                elif choice == 1 and furnishing["crafted"]:
+                    input(
+                        bold(
+                            color(
+                                "\nCannot set blueprint as not owned if already crafted!",
+                                "red",
+                            )
+                        )
+                    )
+                else:
+                    furnishing[options[choice - 1]] = not furnishing[
+                        options[choice - 1]
+                    ]
+                    save_inventory(inventory)
+        else:
+            choice = None
+
+        if furnishing.get("blueprint") is None or choice == 0:
+            clear_screen()
+            print(title)
+            print(f"""  Old: {furnishing["owned"]}""")
+            furnishing["owned"] = locale.atoi(input("  New: "))
+            save_inventory(inventory)
+
+        if choice is None:
             break
 
 
@@ -105,17 +210,19 @@ def manage():
     choice = 0
     while True:
         clear_screen()
-        print("Manage inventory of:\n")
 
         menu = terminal_menu(
             [f"  {get_relevant_emoji(o)}  {o}" for o in options],
+            title="Manage inventory of:\n",
             cursor_index=choice,
             show_search_hint=False,
         )
 
         if (choice := menu.show()) is not None:
-            dict(companions=manage_companions, materials=manage_materials,)[
-                options[choice]
-            ](metadata, inventory)
+            dict(
+                companions=manage_companions,
+                materials=manage_materials,
+                furnishings=manage_furnishings,
+            )[options[choice]](metadata, inventory)
         else:
             break

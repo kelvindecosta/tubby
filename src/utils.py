@@ -7,6 +7,7 @@ from typing import List
 
 
 from simple_term_menu import TerminalMenu
+from sty import fg, ef, rs
 
 
 def clear_screen():
@@ -102,3 +103,40 @@ def get_relevant_emoji(text: str) -> str:
         return "🛋️ "
     else:
         return "  "
+
+
+def color(text: str, name: str) -> str:
+    """Colorizes `text` with `name` color for terminal output
+
+    Args:
+        text (str): subject text
+        name (str): name of color
+
+    Returns:
+        str: colorized text
+    """
+    return f"{fg(name)}{text}{fg.rs}"
+
+
+def bold(text: str) -> str:
+    """Emboldens `text` for terminal output
+
+    Args:
+        text (str): subject text
+
+    Returns:
+        str: bold text
+    """
+    return f"{ef.bold}{text}{rs.bold_dim}"
+
+
+def italic(text: str) -> str:
+    """Italicizes `text` for terminal output
+
+    Args:
+        text (str): subject text
+
+    Returns:
+        str: italicized text
+    """
+    return f"{ef.italic}{text}{rs.italic}"

@@ -16,27 +16,16 @@ def get_companions(metdata: dict) -> dict:
     return {i: f for i, f in enumerate(furnishings) if f["category"] == category}
 
 
-def get_material_id(metdata: dict, name: str) -> int:
-    """Get id for material with `name`
+def get_furnishings(metdata: dict) -> dict:
+    """Gets all furnishings
 
     Args:
         metdata (dict): housing metadata
-        name (str): material name
 
     Returns:
-        int: material id
+        dict: mapping of furnishing ids to furnishings
     """
-    return metdata["materials"]["map"][name]
+    furnishings = metdata["furnishings"]["list"]
+    category = metdata["categories"]["map"]["Companion"]
 
-
-def get_furnishing_id(metdata: dict, name: str) -> int:
-    """Get id for furnishing with `name`
-
-    Args:
-        metdata (dict): housing metadata
-        name (str): furnishing name
-
-    Returns:
-        int: furnishing id
-    """
-    return metdata["furnishings"]["map"][name]
+    return {i: f for i, f in enumerate(furnishings) if f["category"] != category}
