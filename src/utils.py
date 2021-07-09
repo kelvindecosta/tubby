@@ -73,8 +73,7 @@ def terminal_menu(
     return TerminalMenu(
         options,
         menu_cursor_style=("fg_cyan", "bold"),
-        clear_menu_on_exit=True,
-        clear_screen=True,
+        clear_menu_on_exit=False,
         show_search_hint=show_search_hint,
         **kwargs,
     )
