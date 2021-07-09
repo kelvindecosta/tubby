@@ -5,7 +5,7 @@ import asyncio
 import locale
 import os
 from typing import List, Optional
-
+import unicodedata
 
 from simple_term_menu import TerminalMenu
 from sty import fg, ef, rs
@@ -73,7 +73,8 @@ def terminal_menu(
     return TerminalMenu(
         options,
         menu_cursor_style=("fg_cyan", "bold"),
-        clear_menu_on_exit=False,
+        clear_menu_on_exit=True,
+        clear_screen=True,
         show_search_hint=show_search_hint,
         **kwargs,
     )
@@ -91,17 +92,17 @@ def get_relevant_emoji(text: str) -> str:
     if text == "companions":
         return "👤"
     elif text == "materials" or "Wood" in text or text == "Bamboo Segment":
-        return "🪵 "
+        return "🪵"
     elif "Chunk" in text:
-        return "🪨 "
+        return "🪨"
     elif "Dye" in text:
-        return "🖌️ "
+        return "🎨"
     elif text == "Fabric":
-        return "🏳️ "
+        return "💮"
     elif text == "furnishings":
         return "🪑"
     elif text == "sets":
-        return "🛋️ "
+        return "🏡"
     else:
         return "  "
 
@@ -144,6 +145,14 @@ def italic(text: str) -> str:
 
 
 def input_int(prompt: str) -> Optional[int]:
+    """Returns valid integer entered by user
+
+    Args:
+        prompt (str): message to user
+
+    Returns:
+        Optional[int]: valid integer
+    """
     result = input(prompt)
 
     try:

@@ -3,19 +3,16 @@
 
 def create_metadata_schema():
     """Creates schema for metadata"""
-    metadata = {
-        key: {"map": {}, "list": []}
-        for key in [
-            "categories",
-            "subcategories",
-            "types",
-            "materials",
-            "furnishings",
-            "sets",
-        ]
-    }
-
-    metadata["cache"] = {}
+    metadata = {key: [] for key in ["companions", "materials"]}
+    metadata.update(
+        {
+            key: {}
+            for key in [
+                "furnishings",
+                "sets",
+            ]
+        }
+    )
 
     return metadata
 

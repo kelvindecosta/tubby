@@ -20,7 +20,7 @@ import tqdm.asyncio
 
 from .file import load_metadata, save_metadata
 from .reset import create_metadata_schema
-from .utils import clean_dict, gather_dict
+from .utils import bold, clean_dict, color, gather_dict, italic
 
 
 locale.setlocale(locale.LC_ALL, "en_US.UTF8")
@@ -86,6 +86,29 @@ def get_tag_text(tag: Tag) -> str:
     return tag.text.strip()
 
 
+async def parse_costs_for_furnishings_from_depot(
+    client: httpx.AsyncClient, url: str
+) -> Dict[str, int]:
+    """Parses costs for furnishings purchased from Realm Depot
+
+    Args:
+        client (httpx.AsyncClient): HTTP client
+        url (str): source URL
+
+    Returns:
+        Dict[str, int]: mapping of furnishings to costs
+    """
+    soup = await fetch_soup(client, url)
+
+    return {
+        re.sub(r"Blueprint: ", "", get_tag_text(row.find_all("a")[1])): locale.atoi(
+            get_tag_text(row.find_all("td")[1])
+        )
+        for table in soup.find_all("table", {"class": "article-table"})[1:]
+        for row in table.find("tbody").find_all("tr")[1:-1]
+    }
+
+
 async def parse_costs_for_furnishings_from_chubby(
     client: httpx.AsyncClient, url: str
 ) -> Dict[str, int]:
@@ -124,14 +147,14 @@ async def fetch_sources() -> dict:
             for case in ["Furnishings", "Sets"]
         }
 
-        results = await gather_dict(
-            {
-                **tasks,
-                "costs": parse_costs_for_furnishings_from_chubby(
-                    client, create_wiki_url("/wiki/Chubby")
-                ),
-            }
+        tasks["chubby"] = parse_costs_for_furnishings_from_chubby(
+            client, create_wiki_url("/wiki/Chubby")
         )
+        tasks["depot"] = parse_costs_for_furnishings_from_depot(
+            client, create_wiki_url("/wiki/Housing/Realm_Depot")
+        )
+
+        results = await gather_dict(tasks)
 
     return results
 
@@ -155,83 +178,37 @@ async def parse_furnishing(
         get_tag_text(soup.find("h1", {"class": "page-header__title"})),
     )
 
-    category_heirarchy = ["categories", "subcategories", "types"]
-
-    category, subcategory, type = [
-        (
-            c_map.get(c)
-            if c in (c_map := metadata[category_heirarchy[i]]["map"])
-            else [
-                metadata[category_heirarchy[i]]["list"].append(c),
-                c_map.setdefault(c, len(c_map)),
-            ][1]
+    category = list(
+        filter(
+            lambda t: len(t) > 0,
+            map(
+                lambda t: get_tag_text(t),
+                filter(
+                    lambda t: t.find("img") is None,
+                    soup.find("div", {"data-source": "category"})
+                    .find("div", {"class": "pi-data-value"})
+                    .children,
+                ),
+            ),
         )
-        if c is not None
-        else None
-        for i, c in enumerate(
-            (
-                list(
-                    filter(
-                        lambda t: len(t) > 0,
-                        map(
-                            lambda t: get_tag_text(t),
-                            filter(
-                                lambda t: t.find("img") is None,
-                                soup.find("div", {"data-source": "category"})
-                                .find("div", {"class": "pi-data-value"})
-                                .children,
-                            ),
-                        ),
-                    )
-                )
-                + [None] * 3
-            )[:3]
-        )
-    ]
+    )[0]
 
     cost = (
         locale.atoi(re.search(r"\d+", cost_match.group()).group())
         if ((cost_match := re.search(r"Realm Currency.*\d+\.", soup.text)) is not None)
-        else (sources["costs"].get(name, None))
-    )
-
-    energy = (
-        locale.atoi(get_tag_text(energy_tag))
-        if (
-            (energy_tag := soup.find("td", {"data-source": "adeptal_energy"}))
-            is not None
+        else (
+            depot_cost
+            if (depot_cost := sources["depot"].get(name))
+            else sources["chubby"].get(name)
         )
-        else None
-    )
-
-    load = (
-        locale.atoi(get_tag_text(load_tag))
-        if ((load_tag := soup.find("td", {"data-source": "load"})) is not None)
-        else None
-    )
-
-    time = (
-        locale.atoi(
-            get_tag_text(
-                time_tag.find("span", {"class": "new_genshin_recipe_header_text"})
-            ).split()[0]
-        )
-        if (
-            (time_tag := soup.find("span", {"class": "new_genshin_recipe_header_sub"}))
-            is not None
-        )
-        else None
     )
 
     materials = (
         {
             (
-                m_map.get(m)
-                if m in (m_map := metadata["materials"]["map"])
-                else [
-                    metadata["materials"]["list"].append(m),
-                    m_map.setdefault(m, len(m_map)),
-                ][1]
+                m
+                if m in (materials_md := metadata["materials"])
+                else [materials_md.append(m), m][1]
             ): amount
             for m, amount in {
                 get_tag_text(
@@ -253,25 +230,19 @@ async def parse_furnishing(
 
     furnishing = clean_dict(
         dict(
-            name=name,
-            category=category,
-            subcategory=subcategory,
-            type=type,
             cost=cost,
-            energy=energy,
-            load=load,
-            time=time,
             materials=materials,
         )
     )
 
-    f_map, f_list = metadata["furnishings"].values()
-
-    f_list.append(furnishing)
-    f_map.setdefault(name, len(f_map))
-
-    metadata["cache"][url] = True
-    save_metadata(metadata)
+    if category == "Companion":
+        if name not in (companions := metadata["companions"]):
+            companions.append(name)
+            save_metadata(metadata)
+    else:
+        if (furnishings := metadata["furnishings"]).get(name) != furnishing:
+            furnishings[name] = furnishing
+            save_metadata(metadata)
 
 
 async def parse_set(client: httpx.AsyncClient, url: str, metadata: dict, sources: dict):
@@ -291,44 +262,10 @@ async def parse_set(client: httpx.AsyncClient, url: str, metadata: dict, sources
         get_tag_text(soup.find("h1", {"class": "page-header__title"})),
     )
 
-    category_heirarchy = ["categories", "subcategories", "types"]
-
-    category, subcategory, type = [
-        (
-            c_map.get(c)
-            if c in (c_map := metadata[category_heirarchy[i]]["map"])
-            else [
-                metadata[category_heirarchy[i]]["list"].append(c),
-                c_map.setdefault(c, len(c_map)),
-            ][1]
-        )
-        if c is not None
-        else None
-        for i, c in enumerate(
-            (
-                list(
-                    filter(
-                        lambda t: len(t) > 0,
-                        map(
-                            lambda t: get_tag_text(t),
-                            filter(
-                                lambda t: t.find("img") is None,
-                                soup.find("div", {"data-source": "category"})
-                                .find("div", {"class": "pi-data-value"})
-                                .children,
-                            ),
-                        ),
-                    )
-                )
-                + [None] * 3
-            )[:3]
-        )
-    ]
-
     cost = (
         locale.atoi(re.search(r"\d+", cost_match.group()).group())
         if ((cost_match := re.search(r"Realm Currency.*\d+\.", soup.text)) is not None)
-        else None
+        else sources["depot"].get(name)
     )
 
     mora = (
@@ -337,34 +274,16 @@ async def parse_set(client: httpx.AsyncClient, url: str, metadata: dict, sources
         else None
     )
 
-    energy = (
-        locale.atoi(get_tag_text(energy_tag))
-        if (
-            (energy_tag := soup.find("td", {"data-source": "adeptal_energy"}))
-            is not None
-        )
-        else None
-    )
-
-    load = (
-        locale.atoi(get_tag_text(load_tag))
-        if ((load_tag := soup.find("td", {"data-source": "load"})) is not None)
-        else None
-    )
-
     furnishings = (
         {
-            metadata["furnishings"]["map"].get(f): count
-            for f, count in {
-                get_tag_text(
-                    furnishing_tag.find("div", {"class": "card_caption"})
-                ): locale.atoi(
-                    get_tag_text(furnishing_tag.find("div", {"class": "card_text"}))
-                )
-                for furnishing_tag in recipe_tag.findAll(
-                    "div", {"class": "card_with_caption"}, recursive=False
-                )
-            }.items()
+            get_tag_text(
+                furnishing_tag.find("div", {"class": "card_caption"})
+            ): locale.atoi(
+                get_tag_text(furnishing_tag.find("div", {"class": "card_text"}))
+            )
+            for furnishing_tag in recipe_tag.findAll(
+                "div", {"class": "card_with_caption"}, recursive=False
+            )
         }
         if (
             (recipe_tag := soup.find("div", {"class": "new_genshin_recipe_body"}))
@@ -375,9 +294,7 @@ async def parse_set(client: httpx.AsyncClient, url: str, metadata: dict, sources
 
     companions = (
         list(
-            metadata["furnishings"]["map"].get(
-                get_tag_text(row.find("span", {"class": "card_font"}))
-            )
+            get_tag_text(row.find("span", {"class": "card_font"}))
             for row in companions_tag[0].find("tbody").find_all("tr")[1:]
         )
         if len((companions_tag := soup.select("table.article-table.sortable"))) > 0
@@ -386,26 +303,16 @@ async def parse_set(client: httpx.AsyncClient, url: str, metadata: dict, sources
 
     hset = clean_dict(
         dict(
-            name=name,
-            category=category,
-            subcategory=subcategory,
-            type=type,
             cost=cost,
             mora=mora,
-            energy=energy,
-            load=load,
             furnishings=furnishings,
             companions=companions,
         )
     )
 
-    s_map, s_list = metadata["sets"].values()
-
-    s_list.append(hset)
-    s_map.setdefault(name, len(s_map))
-
-    metadata["cache"][url] = True
-    save_metadata(metadata)
+    if (sets := metadata["sets"]).get(name) != hset:
+        sets[name] = hset
+        save_metadata(metadata)
 
 
 DOWNLOAD_LOCK = asyncio.Lock()
@@ -446,38 +353,16 @@ def download():
     if (metadata := load_metadata()) is None:
         metadata = create_metadata_schema()
 
-    print("Refreshing sources...")
+    print(italic("Refreshing sources..."))
     sources = asyncio.run(fetch_sources())
 
-    cache = metadata["cache"]
+    furnishings_urls = sources["furnishings_urls"]
+    sets_urls = sources["sets_urls"]
 
-    cache_filter = (
-        lambda urls: urls
-        if (len(cache) < 0)
-        else list(filter(lambda u: u not in cache, urls))
-    )
+    print(f"\nGathering {bold(len(furnishings_urls))} Furnishings...")
+    asyncio.run(scrape_urls(furnishings_urls, metadata, sources, parse_furnishing))
 
-    furnishings_urls = cache_filter(sources["furnishings_urls"])
-    sets_urls = cache_filter(sources["sets_urls"])
+    print(f"\nGathering {bold(len(sets_urls))} Sets...")
+    asyncio.run(scrape_urls(sets_urls, metadata, sources, parse_set))
 
-    f_num = len(furnishings_urls)
-    s_num = len(sets_urls)
-
-    if len(cache) > 0:
-        print("\nLocal save has:\n")
-        for key in ["materials", "furnishings", "sets"]:
-            if key != "cache":
-                print(f"""  {len(metadata[key]["list"]):4d}  {key}""")
-
-    if f_num > 0:
-        print(f"\nGathering {f_num} new Furnishings...")
-        asyncio.run(scrape_urls(furnishings_urls, metadata, sources, parse_furnishing))
-
-    if s_num > 0:
-        print(f"\nGathering {s_num} new Sets...")
-        asyncio.run(scrape_urls(sets_urls, metadata, sources, parse_set))
-
-    if any(map(lambda x: x > 0, (f_num, s_num))):
-        print("\nHousing metadata updated!")
-    else:
-        print("\nHousing metadata is already updated!")
+    print(bold(color("\nHousing metadata updated!", "green")))

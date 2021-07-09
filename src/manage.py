@@ -5,11 +5,10 @@ import click
 
 
 from .file import load_inventory, load_metadata, save_inventory
-from .query import get_companions, get_furnishings, get_furnishing_crafting_materials
+from .query import get_furnishing_crafting_materials
 from .reset import create_inventory_schema
 from .utils import (
     bold,
-    clear_screen,
     color,
     get_relevant_emoji,
     input_int,
@@ -24,32 +23,26 @@ def manage_companions(metadata: dict, inventory: dict):
         metadata (dict): housing metadata
         inventory (dict): user inventory
     """
-    companions_md = dict(
-        sorted(get_companions(metadata).items(), key=lambda item: item[1]["name"])
-    )
+    names = sorted(metadata["companions"])
     companions = inventory["companions"]
+
+    save = False
+    for name in names:
+        if (save := name not in companions) :
+            companions[name] = False
+    if save:
+        save_inventory(inventory)
 
     choice = 0
     while True:
-        clear_screen()
-
         menu = terminal_menu(
-            [
-                f"""{"🟢" if str(i) in companions else "🔴"} {c["name"]}"""
-                for i, c in companions_md.items()
-            ],
+            [f"""{"🟢" if companions[name] else "🔴"} {name}""" for name in names],
             title="Companions\n\n  Track whether or not the following are owned:\n",
             cursor_index=choice,
         )
 
         if (choice := menu.show()) is not None:
-            c_id = str(list(companions_md.keys())[choice])
-
-            if c_id not in companions:
-                companions[c_id] = True
-            else:
-                companions.pop(c_id)
-
+            companions[names[choice]] = not companions[names[choice]]
             save_inventory(inventory)
         else:
             break
@@ -62,41 +55,36 @@ def manage_materials(metadata: dict, inventory: dict):
         metadata (dict): housing metadata
         inventory (dict): user inventory
     """
-    materials_md = dict(
-        sorted(
-            enumerate(metadata["materials"]["list"]),
-            key=lambda item: item[1].split()[-1],
-        )
-    )
+    names = sorted(metadata["materials"], key=lambda m: m.split()[-1])
     materials = inventory["materials"]
 
-    if len(materials) == 0:
-        materials.update({str(i): 0 for i in materials_md})
+    save = False
+    for name in names:
+        if (save := name not in materials) :
+            materials[name] = 0
+    if save:
+        save_inventory(inventory)
 
     choice = 0
     while True:
-        clear_screen()
-
         menu = terminal_menu(
             [
-                f"{materials[str(i)]:4d}×  {get_relevant_emoji(m)}  {m}"
-                for i, m in materials_md.items()
+                f"{get_relevant_emoji(name)} {materials[name]:4d}×  {name}"
+                for name in names
             ],
             title="Materials\n\n  Track how many of the following are owned:\n",
             cursor_index=choice,
         )
 
         if (choice := menu.show()) is not None:
-            clear_screen()
-
-            m_id = str(list(materials_md.keys())[choice])
-            print(f"{materials_md[int(m_id)]}:\n\n  Old: {materials[m_id]}")
+            name = names[choice]
+            print(f"{name}:\n\n  Old: {materials[name]}")
 
             if (new_amount := input_int("  New: ")) is None:
                 input(bold(color("\nInvalid amount!", "red")))
                 continue
 
-            materials[m_id] = new_amount
+            materials[name] = new_amount
             save_inventory(inventory)
         else:
             break
@@ -109,68 +97,68 @@ def manage_furnishings(metadata: dict, inventory: dict):
         metadata (dict): housing metadata
         inventory (dict): user inventory
     """
-    furnishings_md = dict(
-        sorted(get_furnishings(metadata).items(), key=lambda item: item[1]["name"])
-    )
-    furnishings_md = dict(
+    furnishings_md = metadata["furnishings"]
+
+    names = sorted(
         sorted(
-            furnishings_md.items(),
-            key=lambda item: item[1].get("cost") is None,
-        )
-    )
-    furnishings_md = dict(
-        sorted(
-            furnishings_md.items(),
-            key=lambda item: item[1].get("materials") is None,
-        )
+            sorted(furnishings_md.keys()),
+            key=lambda name: furnishings_md[name].get("cost", 0),
+            reverse=True,
+        ),
+        key=lambda name: furnishings_md[name].get("materials") is None,
     )
     furnishings = inventory["furnishings"]
 
-    if len(furnishings) == 0:
-        furnishings.update(
-            {
-                str(i): dict(owned=0)
-                if f.get("materials") is None
-                else dict(owned=0, blueprint=False, crafted=False)
-                for i, f in furnishings_md.items()
-            }
-        )
+    save = False
+    for name in names:
+        furnishing = furnishings.get(name)
+        if (
+            save := (
+                name not in furnishings
+                or (
+                    furnishing.get("blueprint") is None
+                    and furnishings_md[name].get("materials") is not None
+                )
+            )
+        ) :
+            furnishing.setdefault("owned", 0)
+
+            if furnishings_md[name].get("materials") is not None:
+                furnishing.update(dict(blueprint=False, crafted=False))
+    if save:
+        save_inventory(inventory)
 
     choice = 0
     while True:
-        clear_screen()
-
         menu = terminal_menu(
             [
-                f"""{("💰        " if f.get("cost") is not None else "          ") if f.get("materials") is None else f"📘{'🟢' if  furnishings[str(i)]['blueprint'] else '🔴'}  🔨{'🟢' if  furnishings[str(i)]['crafted'] else '🔴'}"}  {furnishings[str(i)]["owned"]:4d}×  {f["name"]}"""
-                for i, f in furnishings_md.items()
+                f"""{("💰" if furnishings_md[name].get("cost") is not None else "🫖")} {f"📘{'🟢' if  furnishings[name]['blueprint'] else '🔴'}  🔨{'🟢' if  furnishings[name]['crafted'] else '🔴'}" if furnishings_md[name].get("materials") is not None else " " * 10}  {furnishings[name]["owned"]:4d}×  {name}"""
+                for name in names
             ],
-            title="Furnishings\n\n  Key:\n\n    💰 = purchaseable\n    📘 = blueprint owned\n    🔨 = crafted atleast once\n\n  Track the following:\n",
+            title="Furnishings\n\n  Key:\n\n    🫖 = trust rank / adeptal mirror / event\n    💰 = purchaseable\n    📘 = blueprint owned\n    🔨 = crafted atleast once\n\n  Track the following:\n",
             cursor_index=choice,
         )
 
         if (choice := menu.show()) is not None:
-            manage_furnishing(metadata, inventory, list(furnishings_md.keys())[choice])
+            manage_furnishing(metadata, inventory, names[choice])
         else:
             break
 
 
-def manage_furnishing(metadata: dict, inventory: dict, f_id: int):
-    """Manages furnishing with `f_id`
+def manage_furnishing(metadata: dict, inventory: dict, f_name: str):
+    """Manages furnishing with `f_name`
 
     Args:
         metadata (dict): housing metadata
         inventory (dict): user inventory
-        f_id (int): furnishing id
+        f_name (int): furnishing name
     """
-    furnishing = inventory["furnishings"][str(f_id)]
+    furnishing = inventory["furnishings"][f_name]
 
-    title = f"""{metadata["furnishings"]["list"][f_id]["name"]}:\n"""
+    title = f"""{f_name}:\n"""
 
     choice = 0
     while True:
-        clear_screen()
-
         if furnishing.get("blueprint") is not None:
             options = ["blueprint", "crafted"]
 
@@ -200,14 +188,13 @@ def manage_furnishing(metadata: dict, inventory: dict, f_id: int):
                 else:
                     if choice == 2 and not furnishing["crafted"]:
                         crafting_materials = get_furnishing_crafting_materials(
-                            metadata, f_id, 1
+                            metadata, f_name, 1
                         )
                         print("\nRequired crafting materials:\n")
                         print(
                             *[
-                                f"{amount:4d}×  {get_relevant_emoji(name)}  {name}"
-                                for m_id, amount in crafting_materials.items()
-                                if (name := metadata["materials"]["list"][int(m_id)])
+                                f"  {get_relevant_emoji(m_name)} {amount:4d}×  {m_name}"
+                                for m_name, amount in crafting_materials.items()
                             ],
                             sep="\n",
                         )
@@ -224,11 +211,11 @@ def manage_furnishing(metadata: dict, inventory: dict, f_id: int):
                             and deduct.lower()[0] == "y"
                         ):
                             if all(
-                                inventory["materials"][str(m_id)] >= amount
-                                for m_id, amount in crafting_materials.items()
+                                inventory["materials"][m_name] >= amount
+                                for m_name, amount in crafting_materials.items()
                             ):
-                                for m_id, amount in crafting_materials.items():
-                                    inventory["materials"][str(m_id)] -= amount
+                                for m_name, amount in crafting_materials.items():
+                                    inventory["materials"][m_name] -= amount
                             else:
                                 input(
                                     bold(
@@ -243,13 +230,13 @@ def manage_furnishing(metadata: dict, inventory: dict, f_id: int):
                         if (
                             len(
                                 (
-                                    deduct := input(
+                                    craft := input(
                                         "\nAdd crafted furnishing to inventory amount? [y/N]: "
                                     )
                                 )
                             )
                             > 0
-                            and deduct.lower()[0] == "y"
+                            and craft.lower()[0] == "y"
                         ):
                             furnishing["owned"] += 1
 
@@ -261,26 +248,27 @@ def manage_furnishing(metadata: dict, inventory: dict, f_id: int):
             choice = None
 
         if furnishing.get("blueprint") is None or choice == 0:
-            clear_screen()
             print(title)
             print(f"""  Old: {furnishing["owned"]}""")
 
             if (new_amount := input_int("  New: ")) is None:
                 input(bold(color("\nInvalid amount!", "red")))
-                continue
+                if choice == 0:
+                    continue
+                else:
+                    break
 
             num_crafted = new_amount - furnishing["owned"]
 
             if num_crafted > 0 and furnishing.get("blueprint"):
                 crafting_materials = get_furnishing_crafting_materials(
-                    metadata, f_id, num_crafted
+                    metadata, f_name, num_crafted
                 )
                 print(f"\nRequired crafting materials for {num_crafted} furnishings:\n")
                 print(
                     *[
-                        f"{amount:4d}×  {get_relevant_emoji(name)}  {name}"
-                        for m_id, amount in crafting_materials.items()
-                        if (name := metadata["materials"]["list"][int(m_id)])
+                        f"  {get_relevant_emoji(m_name)} {amount:4d}×  {m_name}"
+                        for m_name, amount in crafting_materials.items()
                     ],
                     sep="\n",
                 )
@@ -297,11 +285,11 @@ def manage_furnishing(metadata: dict, inventory: dict, f_id: int):
                     and deduct.lower()[0] == "y"
                 ):
                     if all(
-                        inventory["materials"][str(m_id)] >= amount
-                        for m_id, amount in crafting_materials.items()
+                        inventory["materials"][m_name] >= amount
+                        for m_name, amount in crafting_materials.items()
                     ):
-                        for m_id, amount in crafting_materials.items():
-                            inventory["materials"][str(m_id)] -= amount
+                        for m_name, amount in crafting_materials.items():
+                            inventory["materials"][m_name] -= amount
                         furnishing["crafted"] = True
                     else:
                         input(
@@ -336,10 +324,8 @@ def manage():
 
     choice = 0
     while True:
-        clear_screen()
-
         menu = terminal_menu(
-            [f"{get_relevant_emoji(o)}  {o}" for o in options],
+            [f"{get_relevant_emoji(o)} {o}" for o in options],
             title="Manage inventory of:\n",
             cursor_index=choice,
             show_search_hint=False,
