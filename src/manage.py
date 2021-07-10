@@ -139,8 +139,8 @@ def manage_furnishing(metadata: dict, inventory: dict, f_name: str):
     while True:
         clear_screen()
 
-        if furnishing.get("blueprint") is not None:
-            options = ["blueprint", "crafted"]
+        if (blueprint := furnishing.get("blueprint")) is not None:
+            options = ["blueprint", "crafted"][: 2 if blueprint else 1]
 
             menu = terminal_menu(
                 [
@@ -155,9 +155,7 @@ def manage_furnishing(metadata: dict, inventory: dict, f_name: str):
             choice = menu.show()
 
             if choice in [1, 2]:
-                if choice == 2 and not furnishing["blueprint"]:
-                    input(bold(color("\nCannot craft without blueprint!", "red")))
-                elif choice == 1 and furnishing["crafted"]:
+                if (crafted := furnishing["crafted"]) and choice == 1:
                     input(
                         bold(
                             color(
@@ -167,7 +165,7 @@ def manage_furnishing(metadata: dict, inventory: dict, f_name: str):
                         )
                     )
                 else:
-                    if choice == 2 and not furnishing["crafted"]:
+                    if choice == 2 and not crafted:
                         crafting_materials = get_furnishing_crafting_materials(
                             metadata, f_name, 1
                         )
@@ -204,7 +202,7 @@ def manage_furnishing(metadata: dict, inventory: dict, f_name: str):
         else:
             choice = None
 
-        if furnishing.get("blueprint") is None or choice == 0:
+        if blueprint is None or choice == 0:
             clear_screen()
 
             print(title)
@@ -219,7 +217,7 @@ def manage_furnishing(metadata: dict, inventory: dict, f_name: str):
 
             num_crafted = new_amount - furnishing["owned"]
 
-            if num_crafted > 0 and furnishing.get("blueprint"):
+            if num_crafted > 0 and blueprint:
                 crafting_materials = get_furnishing_crafting_materials(
                     metadata, f_name, num_crafted
                 )
