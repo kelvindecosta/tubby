@@ -236,8 +236,8 @@ async def parse_furnishing(
     )
 
     if category == "Companion":
-        if name not in (companions := metadata["companions"]):
-            companions.append(name)
+        if (companions := metadata["companions"]).get(name) is None:
+            companions[name] = {"sets": []}
             save_metadata(metadata)
     else:
         if (furnishings := metadata["furnishings"]).get(name) != furnishing:
@@ -312,6 +312,14 @@ async def parse_set(client: httpx.AsyncClient, url: str, metadata: dict, sources
 
     if (sets := metadata["sets"]).get(name) != hset:
         sets[name] = hset
+
+        if companions is not None:
+            for c_name in companions:
+                if name not in (
+                    companion_sets := metadata["companions"][c_name]["sets"]
+                ):
+                    companion_sets.append(name)
+
         save_metadata(metadata)
 
 

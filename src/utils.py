@@ -91,7 +91,7 @@ def terminal_menu(
     )
 
 
-def get_relevant_emoji(text: str) -> str:
+def emoji(text: str) -> str:
     """Returns relevant emoji for `text`
 
     Args:
@@ -116,6 +116,18 @@ def get_relevant_emoji(text: str) -> str:
         return "🏡"
     else:
         return "  "
+
+
+def emoji_boolean(condition: bool) -> str:
+    """Returns emoji depending on `condition`
+
+    Args:
+        condition (bool): subject condition
+
+    Returns:
+        str: emoji
+    """
+    return "🟢" if condition else "🔴"
 
 
 def color(text: str, name: str) -> str:
@@ -172,3 +184,20 @@ def input_int(prompt: str) -> Optional[int]:
         return None
 
     return result
+
+
+def multiply_values(dictionary: dict, num: int) -> dict:
+    """Multiplies each value in `dictionary` by `num`
+
+    Args:
+        dictionary (dict): subject dictionary
+        num (int): multiplier
+
+    Returns:
+        dict: mapping of keys to values multiplied by multiplier
+    """
+    return (
+        {key: value * num for key, value in dictionary.items()}
+        if dictionary is not None
+        else {}
+    )

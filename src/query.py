@@ -1,55 +1,64 @@
 """This module defines functions for querying metadata and inventory"""
 
 
-from typing import Optional
+from functools import reduce
+from typing import List, Optional
 
 
-from .utils import get_relevant_emoji
+from .utils import emoji, multiply_values
 
 
-def get_furnishing_crafting_materials(
-    metadata: dict, f_name: str, num_crafted: int
-) -> Optional[dict]:
-    """Returns materials required for `num_crafted` `f_name` furnishings
+def get_crafting_recipe(materials: dict) -> Optional[List[str]]:
+    """Returns formatted crafting recipe with `materials`
 
     Args:
-        metadata (dict): housing metadata
-        f_name (str): furnishing name
-        num_crafted (int): number of crafted furnishings
+        materials (dict): crafting materials
 
     Returns:
-        dict: mapping of materials to amount
+        Optional[List[str]]: recipe
     """
-
     return (
-        {m_name: amount * num_crafted for m_name, amount in crafting_materials.items()}
-        if (crafting_materials := metadata["furnishings"][f_name].get("materials"))
-        is not None
+        [f"{emoji(name)} {amount:4d}×  {name}" for name, amount in materials.items()]
+        if materials is not None and len(materials) > 0
         else None
     )
 
 
-def get_furnishing_crafting_recipe(
-    metadata: dict, f_name: str, num_crafted: int
-) -> str:
-    """Generates recipe string for `num_crafted` `fname` furnishings
+def get_placing_recipe(furnishings: dict) -> [List[str]]:
+    """Returns formatted placing recipe with `furnishings`
+
+    Args:
+        furnishings (dict): placed furnishings
+
+    Returns:
+        [List[str]]: recipe
+    """
+    return [f"{amount:4d}×  {name}" for name, amount in furnishings.items()]
+
+
+def get_set_materials(metadata: dict, s_name: str) -> dict:
+    """Returns materials required to craft furnishings for `s_name` set
 
     Args:
         metadata (dict): housing metadata
-        f_name (str): furnishing name
-        num_crafted (int): number of crafted furnishings
+        s_name (str): set name
 
     Returns:
-        str: recipe
+        dict: mapping of materials to amount
     """
-    if (
-        materials := get_furnishing_crafting_materials(metadata, f_name, num_crafted)
-    ) is not None:
-        recipe = [
-            f"  {get_relevant_emoji(m_name)} {amount:4d}×  {m_name}"
-            for m_name, amount in materials.items()
-        ]
-        recipe = "\n".join(recipe)
-        return f"\n Materials (for {num_crafted:4d}×):\n\n{recipe}\n"
-
-    return ""
+    return reduce(
+        lambda materials, result: {
+            **result,
+            **{
+                m_name: (0 if m_name not in result else result[m_name]) + amount
+                for m_name, amount in materials.items()
+            },
+        },
+        (
+            multiply_values(
+                metadata["furnishings"][f_name].get("materials"), num_crafted
+            )
+            for f_name, num_crafted in metadata["sets"][s_name]["furnishings"].items()
+        ),
+        {},
+    )

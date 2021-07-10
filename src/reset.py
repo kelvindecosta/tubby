@@ -9,11 +9,12 @@ from .file import delete_inventory, load_metadata, save_inventory
 
 def create_metadata_schema():
     """Creates schema for metadata"""
-    metadata = {key: [] for key in ["companions", "materials"]}
+    metadata = {"materials": []}
     metadata.update(
         {
             key: {}
             for key in [
+                "companions",
                 "furnishings",
                 "sets",
             ]
@@ -55,22 +56,42 @@ def update_inventory(metadata: dict, inventory: dict):
         if (save := m_name not in (materials := inventory["materials"])) :
             materials[m_name] = 0
 
-    for f_name in (furnishings_md := metadata["furnishings"]) :
+    for f_name, f_md in metadata["furnishings"].items():
         furnishings = inventory["furnishings"]
         if (
             save := (
                 f_name not in furnishings
                 or (
                     furnishings[f_name].get("blueprint") is None
-                    and furnishings_md[f_name].get("materials") is not None
+                    and f_md.get("materials") is not None
                 )
             )
         ) :
             furnishings.setdefault(f_name, {})
             furnishings[f_name].setdefault("owned", 0)
 
-            if furnishings_md[f_name].get("materials") is not None:
+            if f_md.get("materials") is not None:
                 furnishings[f_name].update(dict(blueprint=False, crafted=False))
+
+    for s_name, s_md in metadata["sets"].items():
+        sets = inventory["sets"]
+        if (
+            save := (
+                s_name not in sets
+                or (
+                    sets[s_name].get("companions") is None
+                    and s_md.get("companions") is not None
+                )
+            )
+        ) :
+            sets.setdefault(s_name, {})
+            sets[s_name].setdefault("owned", False)
+
+            if (set_companions := s_md.get("companions")) is not None:
+                sets[s_name].setdefault("companions", {})
+
+                for c_name in set_companions:
+                    sets[s_name]["companions"].setdefault(c_name, False)
 
     if save:
         save_inventory(inventory)
