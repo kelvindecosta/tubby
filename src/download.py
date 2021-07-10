@@ -198,7 +198,7 @@ async def parse_furnishing(
         if ((cost_match := re.search(r"Realm Currency.*\d+\.", soup.text)) is not None)
         else (
             depot_cost
-            if (depot_cost := sources["depot"].get(name))
+            if (depot_cost := sources["depot"].get(name)) is not None
             else sources["chubby"].get(name)
         )
     )

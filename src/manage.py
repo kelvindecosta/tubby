@@ -6,7 +6,7 @@ import click
 
 from .file import load_inventory, load_metadata, save_inventory
 from .query import get_furnishing_crafting_materials, get_furnishing_crafting_recipe
-from .reset import create_inventory_schema
+from .reset import create_inventory_schema, update_inventory
 from .utils import (
     bold,
     clear_screen,
@@ -26,13 +26,6 @@ def manage_companions(metadata: dict, inventory: dict):
     """
     names = sorted(metadata["companions"])
     companions = inventory["companions"]
-
-    save = False
-    for name in names:
-        if (save := name not in companions) :
-            companions[name] = False
-    if save:
-        save_inventory(inventory)
 
     choice = 0
     while True:
@@ -60,13 +53,6 @@ def manage_materials(metadata: dict, inventory: dict):
     """
     names = sorted(metadata["materials"], key=lambda m: m.split()[-1])
     materials = inventory["materials"]
-
-    save = False
-    for name in names:
-        if (save := name not in materials) :
-            materials[name] = 0
-    if save:
-        save_inventory(inventory)
 
     choice = 0
     while True:
@@ -115,25 +101,6 @@ def manage_furnishings(metadata: dict, inventory: dict):
         key=lambda name: furnishings_md[name].get("materials") is None,
     )
     furnishings = inventory["furnishings"]
-
-    save = False
-    for name in names:
-        furnishing = furnishings.get(name)
-        if (
-            save := (
-                name not in furnishings
-                or (
-                    furnishing.get("blueprint") is None
-                    and furnishings_md[name].get("materials") is not None
-                )
-            )
-        ) :
-            furnishing.setdefault("owned", 0)
-
-            if furnishings_md[name].get("materials") is not None:
-                furnishing.update(dict(blueprint=False, crafted=False))
-    if save:
-        save_inventory(inventory)
 
     choice = 0
     while True:
@@ -319,6 +286,8 @@ def manage():
 
     if (inventory := load_inventory()) is None:
         inventory = create_inventory_schema()
+
+    update_inventory(metadata, inventory)
 
     options = list(inventory.keys())
 
