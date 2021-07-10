@@ -25,8 +25,8 @@ def load_metadata() -> Optional[dict]:
         Optional[dict]: subject metadata
     """
     if os.path.exists(METADATA_FILE):
-        with open(METADATA_FILE, "r") as fp:
-            return json.load(fp)
+        with open(METADATA_FILE, "r") as file_pointer:
+            return json.load(file_pointer)
     else:
         return None
 
@@ -37,8 +37,8 @@ def save_metadata(metadata: dict):
     Args:
         metadata (dict): subject metadata
     """
-    with open(METADATA_FILE, "w") as fp:
-        json.dump(metadata, fp)
+    with open(METADATA_FILE, "w") as file_pointer:
+        json.dump(metadata, file_pointer)
 
 
 INVENTORY_FILE = os.path.join(CONFIG_DIR, "inventory.json")
@@ -52,8 +52,8 @@ def load_inventory() -> Optional[dict]:
         Optional[dict]: subject inventory
     """
     if os.path.exists(INVENTORY_FILE):
-        with open(INVENTORY_FILE, "r") as fp:
-            return json.load(fp)
+        with open(INVENTORY_FILE, "r") as file_pointer:
+            return json.load(file_pointer)
     else:
         return None
 
@@ -64,8 +64,8 @@ def save_inventory(inventory: dict):
     Args:
         inventory (dict): subject inventory
     """
-    with open(INVENTORY_FILE, "w") as fp:
-        json.dump(inventory, fp)
+    with open(INVENTORY_FILE, "w") as file_pointer:
+        json.dump(inventory, file_pointer)
 
 
 def delete_inventory() -> bool:

@@ -6,13 +6,13 @@ This metadata is gathered by scraping the Genshin Impact Wiki.
 
 import asyncio
 from collections.abc import Callable
-import click
 import locale
 import re
 from typing import List, Dict
 
 
 from bs4 import BeautifulSoup, Tag
+import click
 import httpx
 import tqdm
 import tqdm.asyncio
@@ -182,7 +182,7 @@ async def parse_furnishing(
         filter(
             lambda t: len(t) > 0,
             map(
-                lambda t: get_tag_text(t),
+                get_tag_text,
                 filter(
                     lambda t: t.find("img") is None,
                     soup.find("div", {"data-source": "category"})

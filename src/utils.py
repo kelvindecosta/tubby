@@ -6,6 +6,7 @@ import locale
 import os
 from typing import List, Optional
 
+
 from simple_term_menu import TerminalMenu
 from sty import fg, ef, rs
 
@@ -155,7 +156,7 @@ def input_int(prompt: str) -> Optional[int]:
 
     try:
         result = locale.atoi(result)
-    except:
+    except ValueError:
         return None
 
     return result

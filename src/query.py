@@ -1,5 +1,6 @@
 """This module defines functions for querying metadata and inventory"""
 
+
 from typing import Optional
 
 
