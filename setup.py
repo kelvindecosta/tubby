@@ -32,6 +32,7 @@ setup(
         "bs4",
         "httpx",
         "simple-term-menu",
+        "sty",
         "tqdm",
     ],
     entry_points={"console_scripts": [f"{NAME} = {NAME}:main"]},
