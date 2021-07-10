@@ -6,6 +6,9 @@ import os
 from typing import Optional
 
 
+from .utils import bold, color, prompt_confirm
+
+
 CONFIG_DIR: str = os.path.join(os.path.dirname(__file__), "config")
 """Folder for configuration"""
 
@@ -75,18 +78,10 @@ def delete_inventory() -> bool:
         bool: whether inventory was deleted
     """
     if os.path.exists(INVENTORY_FILE):
-        if (
-            len(
-                confirm := input(
-                    "Are you sure you want to delete your inventory? [y/N]: "
-                )
-            )
-            > 0
-            and confirm.lower()[0] == "y"
-        ):
+        if prompt_confirm("Are you sure you want to delete your inventory?"):
             os.remove(INVENTORY_FILE)
-            print("Deleted inventory!")
+            print(bold(color("Deleted inventory!", "green")))
             return True
     else:
-        print("Could not find inventory!")
+        print(bold(color("Could not find inventory!", "red")))
     return False

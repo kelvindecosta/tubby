@@ -12,6 +12,7 @@ python -m tubby
 import click
 
 
+from .backup import backup
 from .download import download
 from .manage import manage
 from .meta import DESCRIPTION
@@ -30,6 +31,7 @@ def main():
 
 main.add_command(download)
 main.add_command(manage)
+main.add_command(backup)
 main.add_command(reset)
 
 

@@ -19,6 +19,18 @@ def clear_screen():
         _ = os.system("clear")
 
 
+def prompt_confirm(prompt: str) -> bool:
+    """Prompt user for confirmation
+
+    Args:
+        prompt (str): question to user
+
+    Returns:
+        bool: confirmation
+    """
+    return len(confirm := input(f"{prompt} [y/N]: ")) > 0 and confirm.lower()[0] == "y"
+
+
 def clean_dict(dictionary: dict) -> dict:
     """Recursively removes `None` values from `dictionary`
 

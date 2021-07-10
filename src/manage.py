@@ -13,6 +13,7 @@ from .utils import (
     color,
     get_relevant_emoji,
     input_int,
+    prompt_confirm,
     terminal_menu,
 )
 
@@ -171,16 +172,8 @@ def manage_furnishing(metadata: dict, inventory: dict, f_name: str):
                             metadata, f_name, 1
                         )
 
-                        if (
-                            len(
-                                (
-                                    deduct := input(
-                                        "\nUse materials for crafting from inventory? [y/N]: "
-                                    )
-                                )
-                            )
-                            > 0
-                            and deduct.lower()[0] == "y"
+                        if prompt_confirm(
+                            "\nUse materials for crafting from inventory?"
                         ):
                             if all(
                                 inventory["materials"][m_name] >= amount
@@ -199,16 +192,8 @@ def manage_furnishing(metadata: dict, inventory: dict, f_name: str):
                                 )
                                 continue
 
-                        if (
-                            len(
-                                (
-                                    craft := input(
-                                        "Add crafted furnishing to inventory amount? [y/N]: "
-                                    )
-                                )
-                            )
-                            > 0
-                            and craft.lower()[0] == "y"
+                        if prompt_confirm(
+                            "Add crafted furnishing to inventory amount?"
                         ):
                             furnishing["owned"] += 1
 
@@ -240,17 +225,7 @@ def manage_furnishing(metadata: dict, inventory: dict, f_name: str):
                 )
                 print(get_furnishing_crafting_recipe(metadata, f_name, num_crafted))
 
-                if (
-                    len(
-                        (
-                            deduct := input(
-                                "Use materials for crafting from inventory? [y/N]: "
-                            )
-                        )
-                    )
-                    > 0
-                    and deduct.lower()[0] == "y"
-                ):
+                if prompt_confirm("Use materials for crafting from inventory?"):
                     if all(
                         inventory["materials"][m_name] >= amount
                         for m_name, amount in crafting_materials.items()
@@ -281,7 +256,7 @@ def manage():
     """Manages inventory"""
 
     if (metadata := load_metadata()) is None:
-        print("Housing data not found!")
+        print(bold(color("Housing data not found!", "red")))
         exit(1)
 
     if (inventory := load_inventory()) is None:
