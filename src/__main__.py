@@ -15,6 +15,7 @@ import click
 from .download import download
 from .manage import manage
 from .meta import DESCRIPTION
+from .reset import reset
 
 
 @click.group(
@@ -29,6 +30,7 @@ def main():
 
 main.add_command(download)
 main.add_command(manage)
+main.add_command(reset)
 
 
 if __name__ == "__main__":

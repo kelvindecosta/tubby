@@ -66,3 +66,27 @@ def save_inventory(inventory: dict):
     """
     with open(INVENTORY_FILE, "w") as fp:
         json.dump(inventory, fp)
+
+
+def delete_inventory() -> bool:
+    """Deletes inventory file
+
+    Returns:
+        bool: whether inventory was deleted
+    """
+    if os.path.exists(INVENTORY_FILE):
+        if (
+            len(
+                confirm := input(
+                    "Are you sure you want to delete your inventory? [y/N]: "
+                )
+            )
+            > 0
+            and confirm.lower()[0] == "y"
+        ):
+            os.remove(INVENTORY_FILE)
+            print("Deleted inventory!")
+            return True
+    else:
+        print("Could not find inventory!")
+    return False

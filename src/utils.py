@@ -5,7 +5,6 @@ import asyncio
 import locale
 import os
 from typing import List, Optional
-import unicodedata
 
 from simple_term_menu import TerminalMenu
 from sty import fg, ef, rs

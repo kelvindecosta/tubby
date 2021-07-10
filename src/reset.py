@@ -1,7 +1,9 @@
 """This module defines functions for reseting data"""
 
+import click
 
-from .file import save_inventory
+
+from .file import delete_inventory, load_metadata, save_inventory
 
 
 def create_metadata_schema():
@@ -35,7 +37,13 @@ def create_inventory_schema():
     return inventory
 
 
-def update_inventory(metadata, inventory):
+def update_inventory(metadata: dict, inventory: dict):
+    """Updates inventory to match metadata
+
+    Args:
+        metadata (dict): housing metadata
+        inventory (dict): user inventory
+    """
     save = False
 
     for c_name in metadata["companions"]:
@@ -65,3 +73,11 @@ def update_inventory(metadata, inventory):
 
     if save:
         save_inventory(inventory)
+
+
+@click.command(options_metavar="[options]")
+def reset():
+    """Resets inventory"""
+    if delete_inventory() and (metadata := load_metadata()) is not None:
+        inventory = create_inventory_schema()
+        update_inventory(metadata, inventory)
