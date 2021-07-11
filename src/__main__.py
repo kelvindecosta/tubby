@@ -12,6 +12,7 @@ python -m tubby
 import click
 
 
+from .analyze import analyze
 from .backup import backup
 from .download import download
 from .manage import manage
@@ -31,6 +32,7 @@ def main():
 
 main.add_command(download)
 main.add_command(manage)
+main.add_command(analyze)
 main.add_command(backup)
 main.add_command(reset)
 

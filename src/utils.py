@@ -114,6 +114,8 @@ def emoji(text: str) -> str:
         return "🪑"
     elif text == "sets":
         return "🏡"
+    elif text == "currency":
+        return "💰"
     else:
         return "  "
 
@@ -201,3 +203,15 @@ def multiply_values(dictionary: dict, num: int) -> dict:
         if dictionary is not None
         else {}
     )
+
+
+def update_greater(dictionary: dict, key: str, num: int):
+    """Maps `key` in `dictionary` to `num` if greater
+
+    Args:
+        dictionary (dict): subject dictionary
+        key (str): subject key
+        num (int): new value
+    """
+    if key not in dictionary or dictionary[key] < num:
+        dictionary[key] = num
