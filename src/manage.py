@@ -5,7 +5,11 @@ import click
 
 
 from .file import load_inventory, load_metadata, save_inventory
-from .query import get_crafting_recipe, get_placing_recipe, get_set_materials
+from .query import (
+    get_crafting_recipe,
+    get_materials_for_furnishings,
+    get_placing_recipe,
+)
 from .reset import create_inventory_schema, update_inventory
 from .utils import (
     bold,
@@ -316,7 +320,9 @@ def manage_set(metadata: dict, inventory: dict, s_name: str):
                 crafting_recipe := get_crafting_recipe(
                     dict(
                         sorted(
-                            get_set_materials(metadata, s_name).items(),
+                            get_materials_for_furnishings(
+                                metadata, furnishings
+                            ).items(),
                             key=lambda item: item[0].split()[-1],
                         )
                     )

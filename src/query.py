@@ -36,12 +36,12 @@ def get_placing_recipe(furnishings: dict) -> [List[str]]:
     return [f"{amount:4d}×  {name}" for name, amount in furnishings.items()]
 
 
-def get_set_materials(metadata: dict, s_name: str) -> dict:
-    """Returns materials required to craft furnishings for `s_name` set
+def get_materials_for_furnishings(metadata: dict, furnishings: dict) -> dict:
+    """Returns materials required to craft `furnishings`
 
     Args:
         metadata (dict): housing metadata
-        s_name (str): set name
+        furnishings (dict): mapping of furnishings to count
 
     Returns:
         dict: mapping of materials to amount
@@ -58,7 +58,7 @@ def get_set_materials(metadata: dict, s_name: str) -> dict:
             multiply_values(
                 metadata["furnishings"][f_name].get("materials"), num_crafted
             )
-            for f_name, num_crafted in metadata["sets"][s_name]["furnishings"].items()
+            for f_name, num_crafted in furnishings.items()
         ),
         {},
     )
