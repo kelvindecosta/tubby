@@ -36,7 +36,7 @@ def backup(path: str, export: bool):
             else:
                 if (inventory := load_inventory()) is not None:
                     if not os.path.exists(path):
-                        os.makedirs(os.path.dirname(path))
+                        os.makedirs(os.path.dirname(path), exist_ok=True)
 
                     with open(path, "w") as file_pointer:
                         json.dump(inventory, file_pointer)
