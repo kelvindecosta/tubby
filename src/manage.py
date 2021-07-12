@@ -345,7 +345,11 @@ def manage_set(metadata: dict, inventory: dict, s_name: str):
         owned = hset["owned"]
 
         companion_names = (
-            [c_name for c_name in companions if inventory["companions"][c_name]]
+            [
+                c_name
+                for c_name in sorted(companions.keys())
+                if inventory["companions"][c_name]
+            ]
             if companions is not None
             and owned
             and all(
@@ -365,6 +369,7 @@ def manage_set(metadata: dict, inventory: dict, s_name: str):
             ],
             title=f"{s_name}:\n{placing_recipe}{crafting_recipe}",
             cursor_index=choice,
+            show_search_hint=False,
         )
 
         if (choice := menu.show()) is not None:
