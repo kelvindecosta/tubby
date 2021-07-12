@@ -62,3 +62,40 @@ def get_materials_for_furnishings(metadata: dict, furnishings: dict) -> dict:
         ),
         {},
     )
+
+
+def get_cost_of_items(metadata: dict, items: dict) -> dict:
+    """Returns cost of `items`
+
+    Args:
+        metadata (dict): housing metadata
+        items (dict): mapping of furnishings / sets names to amount required
+
+    Returns:
+        dict: mapping of types of cost to total
+    """
+    return reduce(
+        lambda costs, result: {
+            **result,
+            **{
+                cost_type: (0 if cost_type not in result else result[cost_type])
+                + amount
+                for cost_type, amount in costs.items()
+            },
+        },
+        (
+            (
+                {"currency": furnishing.get("cost", 0)}
+                if furnishing.get("materials") is not None
+                else multiply_values(
+                    {"currency": furnishing.get("cost", 0)}, num_required
+                )
+            )
+            if (furnishing := metadata["furnishings"].get(name)) is not None
+            else {"currency": hset["cost"]}
+            if "cost" in (hset := metadata["sets"][name])
+            else {"mora": hset.get("mora", 0) * 1000}
+            for name, num_required in items.items()
+        ),
+        {},
+    )

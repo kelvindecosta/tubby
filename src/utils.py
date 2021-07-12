@@ -116,6 +116,8 @@ def emoji(text: str) -> str:
         return "🏡"
     elif text == "currency":
         return "💰"
+    elif text == "mora":
+        return "🪙"
     else:
         return "  "
 
