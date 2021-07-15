@@ -275,11 +275,12 @@ def manage_sets(metadata: dict, inventory: dict):
         inventory (dict): user inventory
     """
     sets_md = metadata["sets"]
+    sets = inventory["sets"]
     names = sorted(
         sets_md.keys(),
         key=lambda name: (
             sets_md[name].get("companions") is None,
-            inventory["sets"][name]["owned"],
+            sets[name]["owned"],
             name,
         ),
     )
@@ -290,7 +291,7 @@ def manage_sets(metadata: dict, inventory: dict):
 
         menu = terminal_menu(
             [
-                f"""{"🎁" if sets_md[name].get("companions") is not None else "🏡"}{emoji_boolean(inventory["sets"][name]["owned"])}  {name}"""
+                f"""{"🎁" if sets_md[name].get("companions") is not None else "🏡"}{emoji_boolean(sets[name]["owned"])}  {name}"""
                 for name in names
             ],
             title="Sets\n\n  Legend:\n\n    🎁 = gift set\n    🏡 = furniture set\n\n  Track the following:\n",

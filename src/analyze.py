@@ -5,7 +5,12 @@ import click
 
 
 from .file import load_inventory, load_metadata
-from .query import get_crafting_recipe, get_cost_of_items, get_materials_for_furnishings
+from .query import (
+    get_crafting_recipe,
+    get_cost_of_items,
+    get_materials_for_furnishings,
+    get_placing_recipe,
+)
 from .reset import create_inventory_schema, update_inventory
 from .utils import (
     bold,
@@ -84,6 +89,7 @@ def perform_analysis(metadata: dict, inventory: dict) -> dict:
     currency_anal["results"] = [{} for _ in currency_anal["legend"]]
 
     furnishings_anal = analysis["furnishings"]
+    sets_anal = analysis["sets"]
 
     for f_name, furnishing in furnishings.items():
         if (
@@ -111,10 +117,13 @@ def perform_analysis(metadata: dict, inventory: dict) -> dict:
             for c_name, gifted in hset["companions"].items()
             if inventory["companions"][c_name]
         )
+        missing_items = {}
 
         if not set_blueprint:
             currency_anal["results"][4][s_name] = 1
             currency_anal["results"][6][s_name] = 1
+
+            missing_items[s_name] = 1
 
             if has_gifting_companions:
                 currency_anal["results"][1][s_name] = 1
@@ -127,6 +136,8 @@ def perform_analysis(metadata: dict, inventory: dict) -> dict:
                 update_greater(materials_anal["results"][6], f_name, num_missing)
 
                 update_greater(furnishings_anal, f_name, num_missing)
+
+                update_greater(missing_items, f_name, num_missing)
 
                 if (
                     furnishing_blueprint := furnishings[f_name].get("blueprint")
@@ -159,6 +170,9 @@ def perform_analysis(metadata: dict, inventory: dict) -> dict:
                 if set_blueprint:
                     update_greater(materials_anal["results"][4], f_name, num_missing)
 
+        if len(missing_items) > 0:
+            sets_anal[s_name] = missing_items
+
     materials_anal["results"] = list(
         map(
             lambda furnishings: get_materials_for_furnishings(metadata, furnishings),
@@ -168,7 +182,7 @@ def perform_analysis(metadata: dict, inventory: dict) -> dict:
 
     currency_anal["results"] = list(
         map(
-            lambda items: get_cost_of_items(metadata, items),
+            lambda items: get_cost_of_items(metadata, inventory, items),
             currency_anal["results"],
         )
     )
@@ -284,16 +298,13 @@ def summarize_furnishings(metadata: dict, inventory: dict, analysis: dict):
         if (choice := menu.show()) is not None:
             clear_screen()
 
-            materials = metadata["furnishings"][(f_name := names[choice])].get(
-                "materials"
-            )
-
             recipe = (
                 "\n".join(map(lambda x: f"  {x}", recipe))
                 if (
                     recipe := get_crafting_recipe(
                         multiply_values(
-                            materials, (num_missing := furnishings_anal[f_name])
+                            furnishings_md[(f_name := names[choice])].get("materials"),
+                            (num_missing := furnishings_anal[f_name]),
                         )
                     )
                 )
@@ -303,17 +314,113 @@ def summarize_furnishings(metadata: dict, inventory: dict, analysis: dict):
 
             recipe = (
                 f"\n Materials:\n\n{recipe}\n"
-                if (blueprint := furnishings[f_name].get("blueprint")) is not None
+                if furnishings[f_name].get("blueprint") is not None
                 else ""
             )
 
-            cost_str = (
-                f"\n Cost : {cost * (num_missing if not blueprint else 1):4d}"
-                if (cost := furnishings_md[f_name].get("cost")) is not None
+            cost = get_cost_of_items(metadata, inventory, {f_name: num_missing * 10})
+            cost = (
+                "\n".join(
+                    f"  {emoji(k)} {v:6d}×  {k}" for k, v in cost.items() if v != 0
+                )
+                if len(cost) > 0
+                else ""
+            )
+            cost = f"""\n Cost:\n\n{cost}""" if len(cost) > 0 else ""
+
+            print(f"{f_name}:\n\n {num_missing:4d}×  missing\n{recipe}{cost}")
+
+            input()
+        else:
+            break
+
+
+def summarize_sets(metadata: dict, inventory: dict, analysis: dict):
+    sets_md = metadata["sets"]
+    sets = inventory["sets"]
+    sets_anal = analysis["sets"]
+
+    names = sorted(
+        sets_anal.keys(),
+        key=lambda name: (
+            sets_md[name].get("companions") is None,
+            sets[name]["owned"],
+            name,
+        ),
+    )
+
+    choice = 0
+    while True:
+        clear_screen()
+
+        menu = terminal_menu(
+            [
+                f"""{"🎁" if sets_md[name].get("companions") is not None else "🏡"}{emoji_boolean(sets[name]["owned"])}  {name}"""
+                for name in names
+            ],
+            title="Sets\n\n  Legend:\n\n    🎁 = gift set\n    🏡 = furniture set\n\n  Track the following:\n",
+            cursor_index=choice,
+        )
+
+        if (choice := menu.show()) is not None:
+            clear_screen()
+
+            cost = get_cost_of_items(
+                metadata, inventory, sets_anal[(s_name := names[choice])]
+            )
+            cost = (
+                "\n".join(
+                    f"  {emoji(k)} {v:6d}×  {k}" for k, v in cost.items() if v != 0
+                )
+                if len(cost) > 0
+                else ""
+            )
+            cost = f"""\n Cost:\n\n{cost}""" if len(cost) > 0 else ""
+
+            furnishings = {
+                name: amount
+                for name, amount in sets_anal[s_name].items()
+                if name != s_name
+            }
+
+            placing_recipe = (
+                "\n".join(map(lambda x: f"     {x}", get_placing_recipe(furnishings)))
+                if len(furnishings) > 0
+                else ""
+            )
+            placing_recipe = (
+                f"\n Furnishings:\n\n{placing_recipe}\n"
+                if len(placing_recipe) > 0
                 else ""
             )
 
-            print(f"{f_name}:\n\n {num_missing:4d}×  missing\n{recipe}{cost_str}")
+            crafting_recipe = "\n".join(
+                map(
+                    lambda x: f"  {x}",
+                    crafting_recipe
+                    if (
+                        crafting_recipe := get_crafting_recipe(
+                            dict(
+                                sorted(
+                                    get_materials_for_furnishings(
+                                        metadata, furnishings
+                                    ).items(),
+                                    key=lambda item: item[0].split()[-1],
+                                )
+                            )
+                        )
+                    )
+                    is not None
+                    else [],
+                )
+            )
+            crafting_recipe = (
+                f"\n Materials:\n\n{crafting_recipe}\n"
+                if len(crafting_recipe) > 0
+                else ""
+            )
+
+            print(f"{s_name}:\n{placing_recipe}{crafting_recipe}{cost}")
 
             input()
         else:
@@ -335,7 +442,7 @@ def analyze():
 
     analysis = perform_analysis(metadata, inventory)
 
-    options = list(analysis.keys())
+    options = list(k for k, v in analysis.items() if len(v) != 0)
 
     choice = 0
     while True:
@@ -353,6 +460,7 @@ def analyze():
                 materials=lambda a: summarize_materials(metadata, inventory, a),
                 currency=summarize_currency,
                 furnishings=lambda a: summarize_furnishings(metadata, inventory, a),
+                sets=lambda a: summarize_sets(metadata, inventory, a),
             )[options[choice]](analysis)
         else:
             break

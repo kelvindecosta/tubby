@@ -64,11 +64,12 @@ def get_materials_for_furnishings(metadata: dict, furnishings: dict) -> dict:
     )
 
 
-def get_cost_of_items(metadata: dict, items: dict) -> dict:
+def get_cost_of_items(metadata: dict, inventory: dict, items: dict) -> dict:
     """Returns cost of `items`
 
     Args:
         metadata (dict): housing metadata
+        inventory (dict): user inventory
         items (dict): mapping of furnishings / sets names to amount required
 
     Returns:
@@ -85,11 +86,14 @@ def get_cost_of_items(metadata: dict, items: dict) -> dict:
         },
         (
             (
-                {"currency": furnishing.get("cost", 0)}
-                if furnishing.get("materials") is not None
-                else multiply_values(
-                    {"currency": furnishing.get("cost", 0)}, num_required
-                )
+                {
+                    "currency": furnishing.get("cost", 0)
+                    * (
+                        (1 if not inventory["furnishings"][name]["blueprint"] else 0)
+                        if furnishing.get("materials") is not None
+                        else num_required
+                    )
+                }
             )
             if (furnishing := metadata["furnishings"].get(name)) is not None
             else {"currency": hset["cost"]}
