@@ -5,9 +5,18 @@ import click
 
 
 from .file import load_inventory, load_metadata
-from .query import get_cost_of_items, get_materials_for_furnishings
+from .query import get_crafting_recipe, get_cost_of_items, get_materials_for_furnishings
 from .reset import create_inventory_schema, update_inventory
-from .utils import bold, clear_screen, color, emoji, terminal_menu, update_greater
+from .utils import (
+    bold,
+    clear_screen,
+    color,
+    emoji,
+    emoji_boolean,
+    multiply_values,
+    terminal_menu,
+    update_greater,
+)
 
 
 def perform_analysis(metadata: dict, inventory: dict) -> dict:
@@ -64,6 +73,8 @@ def perform_analysis(metadata: dict, inventory: dict) -> dict:
                 "all missing blueprints for furnishings and sets, all missing furnishings for all sets and one of all other furnishings",
             ],
         },
+        "furnishings": {},
+        "sets": {},
     }
 
     materials_anal = analysis["materials"]
@@ -71,6 +82,8 @@ def perform_analysis(metadata: dict, inventory: dict) -> dict:
 
     currency_anal = analysis["currency"]
     currency_anal["results"] = [{} for _ in currency_anal["legend"]]
+
+    furnishings_anal = analysis["furnishings"]
 
     for f_name, furnishing in furnishings.items():
         if (
@@ -85,8 +98,11 @@ def perform_analysis(metadata: dict, inventory: dict) -> dict:
                 currency_anal["results"][0][f_name] = 1
                 currency_anal["results"][6][f_name] = 1
 
+            furnishings_anal[f_name] = 1
+
         elif furnishing_blueprint is None and furnishing["owned"] == 0:
             currency_anal["results"][6][f_name] = 1
+            furnishings_anal[f_name] = 1
 
     for s_name, hset in sets.items():
         set_blueprint = hset["owned"]
@@ -109,6 +125,8 @@ def perform_analysis(metadata: dict, inventory: dict) -> dict:
 
                 update_greater(materials_anal["results"][5], f_name, num_missing)
                 update_greater(materials_anal["results"][6], f_name, num_missing)
+
+                update_greater(furnishings_anal, f_name, num_missing)
 
                 if (
                     furnishing_blueprint := furnishings[f_name].get("blueprint")
@@ -226,6 +244,82 @@ def summarize_currency(analysis: dict):
     input()
 
 
+def summarize_furnishings(metadata: dict, inventory: dict, analysis: dict):
+    """Summarizes `analysis` for furnishings
+
+    Args:
+        metadata (dict): housing metadata
+        inventory (dict): user inventory
+        analysis (dict): useful statistics
+    """
+    furnishings_md = metadata["furnishings"]
+    furnishings = inventory["furnishings"]
+    furnishings_anal = analysis["furnishings"]
+
+    names = sorted(
+        furnishings_anal.keys(),
+        key=lambda name: (
+            furnishings[name].get("blueprint") is None,
+            furnishings[name].get("crafted", False),
+            not furnishings[name].get("blueprint", False),
+            furnishings_md[name].get("cost") is None,
+            -(x := furnishings[name]["owned"]) / (furnishings_anal[name] + x),
+            name,
+        ),
+    )
+
+    choice = 0
+    while True:
+        clear_screen()
+
+        menu = terminal_menu(
+            [
+                f"""{"💰" if furnishings_md[name].get("cost") is not None else "🫖"} {f"📘{emoji_boolean(furnishings[name]['blueprint'])}🔨{emoji_boolean(furnishings[name]['crafted'])}" if furnishings_md[name].get("materials") is not None else " " * 8}  ({(owned := furnishings[name]["owned"]):2d}/{furnishings_anal[name] + owned:2d})  {name}"""
+                for name in names
+            ],
+            title="Furnishings\n\n  Legend:\n\n    🫖 = rewarded for trust rank / adeptal mirror quests / events\n    💰 = can be bought from realm depot / traveling salesman\n    📘 = blueprint owned\n    🔨 = crafted atleast once\n\n  Track the following:\n",
+            cursor_index=choice,
+        )
+
+        if (choice := menu.show()) is not None:
+            clear_screen()
+
+            materials = metadata["furnishings"][(f_name := names[choice])].get(
+                "materials"
+            )
+
+            recipe = (
+                "\n".join(map(lambda x: f"  {x}", recipe))
+                if (
+                    recipe := get_crafting_recipe(
+                        multiply_values(
+                            materials, (num_missing := furnishings_anal[f_name])
+                        )
+                    )
+                )
+                is not None
+                else None
+            )
+
+            recipe = (
+                f"\n Materials:\n\n{recipe}\n"
+                if (blueprint := furnishings[f_name].get("blueprint")) is not None
+                else ""
+            )
+
+            cost_str = (
+                f"\n Cost : {cost * (num_missing if not blueprint else 1):4d}"
+                if (cost := furnishings_md[f_name].get("cost")) is not None
+                else ""
+            )
+
+            print(f"{f_name}:\n\n {num_missing:4d}×  missing\n{recipe}{cost_str}")
+
+            input()
+        else:
+            break
+
+
 @click.command(options_metavar="[options]")
 def analyze():
     """Performs analysis on inventory"""
@@ -241,7 +335,7 @@ def analyze():
 
     analysis = perform_analysis(metadata, inventory)
 
-    options = ["materials", "currency", "furnishings", "sets"]
+    options = list(analysis.keys())
 
     choice = 0
     while True:
@@ -258,6 +352,7 @@ def analyze():
             dict(
                 materials=lambda a: summarize_materials(metadata, inventory, a),
                 currency=summarize_currency,
+                furnishings=lambda a: summarize_furnishings(metadata, inventory, a),
             )[options[choice]](analysis)
         else:
             break
