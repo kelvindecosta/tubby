@@ -101,16 +101,18 @@ def manage_furnishings(metadata: dict, inventory: dict):
         inventory (dict): user inventory
     """
     furnishings_md = metadata["furnishings"]
+    furnishings = inventory["furnishings"]
 
     names = sorted(
-        sorted(
-            sorted(furnishings_md.keys()),
-            key=lambda name: furnishings_md[name].get("cost", 0),
-            reverse=True,
+        furnishings_md.keys(),
+        key=lambda name: (
+            furnishings_md[name].get("materials") is None,
+            furnishings[name].get("crafted", False),
+            not furnishings[name].get("blueprint", False),
+            furnishings_md[name].get("cost") is None,
+            name,
         ),
-        key=lambda name: furnishings_md[name].get("materials") is None,
     )
-    furnishings = inventory["furnishings"]
 
     choice = 0
     while True:
@@ -274,7 +276,12 @@ def manage_sets(metadata: dict, inventory: dict):
     """
     sets_md = metadata["sets"]
     names = sorted(
-        sorted(sets_md.keys()), key=lambda name: sets_md[name].get("companions") is None
+        sets_md.keys(),
+        key=lambda name: (
+            sets_md[name].get("companions") is None,
+            inventory["sets"][name]["owned"],
+            name,
+        ),
     )
 
     choice = 0
