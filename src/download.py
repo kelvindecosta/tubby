@@ -23,7 +23,7 @@ from .reset import create_metadata_schema
 from .utils import bold, clean_dict, color, gather_dict, italic
 
 
-locale.setlocale(locale.LC_ALL, "en_US.UTF8")
+locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 
 
 async def fetch_soup(client: httpx.AsyncClient, url: str) -> BeautifulSoup:
