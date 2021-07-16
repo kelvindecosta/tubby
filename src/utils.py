@@ -80,7 +80,7 @@ def terminal_menu(
         show_search_hint (bool, optional): show search hint. Defaults to True.
 
     Returns:
-        TerminalMenu: menu instancce
+        TerminalMenu: menu instance
     """
     return TerminalMenu(
         options,

@@ -263,7 +263,7 @@ async def parse_set(client: httpx.AsyncClient, url: str, metadata: dict, sources
     Args:
         client (httpx.AsyncClient): HTTP client
         url (str): source URL
-        matadata (dict): housing metadata
+        metadata (dict): housing metadata
         sources (dict): intermediate data
     """
     soup = await fetch_soup(client, url)

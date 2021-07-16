@@ -51,8 +51,8 @@ def perform_analysis(metadata: dict, inventory: dict) -> dict:
             "legend": [
                 "for one of each furnishing whose blueprint is owned and hasn't been crafted yet",
                 "for one of each furnishing that hasn't been crafted yet",
-                "for largest count of each missing furnishing for all gift sets with atleast one gifting companion and whose blueprints are owned",
-                "for largest count of each missing furnishing for all gift sets with atleast one gifting companion",
+                "for largest count of each missing furnishing for all gift sets with at least one gifting companion and whose blueprints are owned",
+                "for largest count of each missing furnishing for all gift sets with at least one gifting companion",
                 "for largest count of each missing furnishing for all sets whose blueprints are owned",
                 "for largest count of each missing furnishing for all sets",
                 "for larger of largest count of each missing furnishing for all sets and one of each furnishing that hasn't been crafted yet",
@@ -70,9 +70,9 @@ def perform_analysis(metadata: dict, inventory: dict) -> dict:
             ],
             "legend": [
                 "all missing blueprints for furnishings",
-                "all missing blueprints for gift sets with atleast one gifting companion",
-                "all missing furnishings (including blueprints) for  for all gift sets with atleast one gifting companion and whose blueprints are owned",
-                "all missing furnishings (including blueprints) for  for all gift sets with atleast one gifting companion",
+                "all missing blueprints for gift sets with at least one gifting companion",
+                "all missing furnishings (including blueprints) for  for all gift sets with at least one gifting companion and whose blueprints are owned",
+                "all missing furnishings (including blueprints) for  for all gift sets with at least one gifting companion",
                 "all missing blueprints for sets",
                 "all missing furnishings (including blueprints) for all sets",
                 "all missing blueprints for furnishings and sets, all missing furnishings for all sets and one of all other furnishings",
@@ -291,7 +291,7 @@ def summarize_furnishings(metadata: dict, inventory: dict, analysis: dict):
                 f"""{"💰" if any(map(lambda k: k in ["currency", "mora"],furnishings_md[name])) else "🫖"} {f"📘{emoji_boolean(furnishings[name]['blueprint'])}🔨{emoji_boolean(furnishings[name]['crafted'])}" if furnishings_md[name].get("materials") is not None else " " * 8}  ({(owned := furnishings[name]["owned"]):2d}/{furnishings_anal[name] + owned:2d})  {name}"""
                 for name in names
             ],
-            title="Furnishings\n\n  Legend:\n\n    🫖 = rewarded for trust rank / adeptal mirror quests / events\n    💰 = can be bought from realm depot / traveling salesman/ teyvat NPC\n    📘 = blueprint owned\n    🔨 = crafted atleast once\n\n  Track the following:\n",
+            title="Furnishings\n\n  Legend:\n\n    🫖 = rewarded for trust rank / adeptal mirror quests / events\n    💰 = can be bought from realm depot / traveling salesman/ teyvat NPC\n    📘 = blueprint owned\n    🔨 = crafted at least once\n\n  Track the following:\n",
             cursor_index=choice,
         )
 

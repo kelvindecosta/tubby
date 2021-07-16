@@ -123,7 +123,7 @@ def manage_furnishings(metadata: dict, inventory: dict):
                 f"""{"💰" if any(map(lambda k: k in ["currency", "mora"], furnishings_md[name])) else "🫖"} {f"📘{emoji_boolean(furnishings[name]['blueprint'])}🔨{emoji_boolean(furnishings[name]['crafted'])}" if furnishings_md[name].get("materials") is not None else " " * 8}  {furnishings[name]["owned"]:4d}×  {name}"""
                 for name in names
             ],
-            title="Furnishings\n\n  Legend:\n\n    🫖 = rewarded for trust rank / adeptal mirror quests / events\n    💰 = can be bought from realm depot / traveling salesman\n    📘 = blueprint owned\n    🔨 = crafted atleast once\n\n  Track the following:\n",
+            title="Furnishings\n\n  Legend:\n\n    🫖 = rewarded for trust rank / adeptal mirror quests / events\n    💰 = can be bought from realm depot / traveling salesman\n    📘 = blueprint owned\n    🔨 = crafted at least once\n\n  Track the following:\n",
             cursor_index=choice,
         )
 
