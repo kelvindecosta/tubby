@@ -83,6 +83,8 @@ Gathering 45 Sets...
 Housing metadata updated!
 ```
 
+---
+
 ### `manage` your inventory
 
 Start tracking your in-game inventory of characters, materials, furnishings and sets.
@@ -136,6 +138,8 @@ tubby manage
 > - <kbd>/</kbd> to open a search prompt, and
 > - <kbd>Esc</kbd> to return to the previous menu/ quit.
 
+---
+
 ### `analyze` your inventory
 
 Find out how many of which resources (materials, currency, missing furnishings, etc.) are required to meet certain milestones.
@@ -182,6 +186,8 @@ tubby analyze
 
 </details>
 
+---
+
 ### import / export `backup` inventory data
 
 Create backups of the information saved with Tubby and export them later.
@@ -217,6 +223,8 @@ Exported backup!
 </details>
 
 > Tubby uses `.json` files for storing data.
+
+---
 
 ### `reset` data
 
