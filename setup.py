@@ -42,5 +42,5 @@ setup(
         "sty",
         "tqdm",
     ],
-    entry_points={"console_scripts": [f"{NAME} = {NAME}:main"]},
+    entry_points={"console_scripts": [f"{NAME} = {NAME}.__main__:main"]},
 )
