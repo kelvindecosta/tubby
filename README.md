@@ -2,7 +2,7 @@
 
 <p align=center>
 
-  <img src="assets/logo.png" height="200px"/>
+  <img src="https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/logo.png" height="200px"/>
 
   <br>
   <span>A utility for the <a href="https://genshin-impact.fandom.com/wiki/Housing">Genshin Impact Housing system</a>.</span>
@@ -93,13 +93,13 @@ Start tracking your in-game inventory of characters, materials, furnishings and 
 tubby manage
 ```
 
-![Manage menu](assets/manage.png)
+![Manage menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/manage.png)
 
 <details>
 
 <summary>Companions</summary>
 
-![Manage companions menu](assets/manage-companions.png)
+![Manage companions menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/manage-companions.png)
 
 </details>
 
@@ -107,7 +107,7 @@ tubby manage
 
 <summary>Materials</summary>
 
-![Manage materials menu](assets/manage-materials.png)
+![Manage materials menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/manage-materials.png)
 
 </details>
 
@@ -115,9 +115,9 @@ tubby manage
 
 <summary>Furnishings</summary>
 
-![Manage furnishings menu](assets/manage-furnishings.png)
+![Manage furnishings menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/manage-furnishings.png)
 
-![Manage furnishing menu](assets/manage-furnishing.png)
+![Manage furnishing menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/manage-furnishing.png)
 
 </details>
 
@@ -125,9 +125,9 @@ tubby manage
 
 <summary>Sets</summary>
 
-![Manage sets menu](assets/manage-sets.png)
+![Manage sets menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/manage-sets.png)
 
-![Manage set menu](assets/manage-set.png)
+![Manage set menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/manage-set.png)
 
 </details>
 
@@ -148,13 +148,13 @@ Find out how many of which resources (materials, currency, missing furnishings, 
 tubby analyze
 ```
 
-![Analyze menu](assets/analyze.png)
+![Analyze menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/analyze.png)
 
 <details>
 
 <summary>Materials</summary>
 
-![Analyze materials menu](assets/analyze-materials.png)
+![Analyze materials menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/analyze-materials.png)
 
 </details>
 
@@ -162,7 +162,7 @@ tubby analyze
 
 <summary>Currency</summary>
 
-![Analyze currency menu](assets/analyze-currency.png)
+![Analyze currency menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/analyze-currency.png)
 
 </details>
 
@@ -170,9 +170,9 @@ tubby analyze
 
 <summary>Furnishings</summary>
 
-![Analyze furnishings menu](assets/analyze-furnishings.png)
+![Analyze furnishings menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/analyze-furnishings.png)
 
-![Analyze furnishing menu](assets/analyze-furnishing.png)
+![Analyze furnishing menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/analyze-furnishing.png)
 
 </details>
 
@@ -180,9 +180,9 @@ tubby analyze
 
 <summary>Sets</summary>
 
-![Analyze sets menu](assets/analyze-sets.png)
+![Analyze sets menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/analyze-sets.png)
 
-![Analyze set menu](assets/analyze-set.png)
+![Analyze set menu](https://raw.githubusercontent.com/kelvindecosta/tubby/master/assets/analyze-set.png)
 
 </details>
 
