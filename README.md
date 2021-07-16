@@ -1,6 +1,26 @@
 # Tubby
 
-A utility for the [Genshin Impact Housing system](https://genshin-impact.fandom.com/wiki/Housing).
+<p align=center>
+
+  <img src="assets/logo.png" height="200px"/>
+
+  <br>
+  <span>A utility for the <a href="https://genshin-impact.fandom.com/wiki/Housing">Genshin Impact Housing system</a>.</span>
+  <br>
+  <img alt="PyPI - Status" src="https://img.shields.io/pypi/status/tubby">
+  <a target="_blank" href="https://pypi.python.org/pypi/tubby/"><img alt="pypi package" src="https://img.shields.io/pypi/v/tubby?color=light%20green"></a>
+  <a target="_blank" href="https://github.com/kelvindecosta/tubby/blob/master/LICENSE" title="License: MIT"><img alt="GitHub" src="https://img.shields.io/github/license/kelvindecosta/tubby?color=blue"></a>
+</p>
+
+<p align="center">
+  <a href="#installation">Installation</a>
+  &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+  <a href="#usage">Usage</a>
+  &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+  <a href="#workflow">Workflow</a>
+  &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/kelvindecosta/tubby/blob/master/CONTRIBUTING.md">Contributing</a>
+</p>
 
 ## Installation
 
@@ -24,71 +44,195 @@ Run the following command to display a helpful message:
 tubby -h
 ```
 
-**TODO: SHOW OUTPUT**
+```
+Usage: tubby [options] <command> [Args]
+
+  A utility for the Genshin Impact Housing system
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  analyze   Performs analysis on inventory
+  backup    Creates or loads inventory backup
+  download  Downloads housing metadata
+  info      Displays package information
+  manage    Manages inventory
+  reset     Resets inventory
+```
 
 ## Workflow
 
-### `download`
+### `download` metadata from the Genshin Impact Wiki
 
-First, download the metadata for the housing system:
+Tubby scrapes the [Wiki](https://genshin-impact.fandom.com/wiki/Genshin_Impact_Wiki) and collects relevant metadata for the housing sets and furnishings.
 
 ```bash
 tubby download
 ```
 
-**TODO: SHOW OUTPUT**
+```
+Refreshing sources...
 
-**TODO: DESCRIBE COMMAND**
+Gathering 342 Furnishings...
+100%|█████████████████████████████████████████████████████████████████████████████| 342/342 [01:56<00:00,  2.93page/s]
 
-### `manage`
+Gathering 45 Sets...
+100%|███████████████████████████████████████████████████████████████████████████████| 45/45 [00:16<00:00,  2.72page/s]
 
-Next, manage your inventory of companions, materials, furnishings and sets:
+Housing metadata updated!
+```
+
+### `manage` your inventory
+
+Start tracking your in-game inventory of characters, materials, furnishings and sets.
 
 ```bash
 tubby manage
 ```
 
-**TODO: SHOW OUTPUT**
+![Manage menu](assets/manage.png)
 
-**TODO: DESCRIBE COMMAND**
+<details>
 
-**TODO: MANAGE COMPANIONS**
+<summary>Companions</summary>
 
-**TODO: MANAGE MATERIALS**
+![Manage companions menu](assets/manage-companions.png)
 
-**TODO: MANAGE FURNISHINGS**
+</details>
 
-**TODO: MANAGE SETS**
+<details>
 
-### `analyze`
+<summary>Materials</summary>
 
-Now, analyze your inventory to determine resources required and other statistics:
+![Manage materials menu](assets/manage-materials.png)
+
+</details>
+
+<details>
+
+<summary>Furnishings</summary>
+
+![Manage furnishings menu](assets/manage-furnishings.png)
+
+![Manage furnishing menu](assets/manage-furnishing.png)
+
+</details>
+
+<details>
+
+<summary>Sets</summary>
+
+![Manage sets menu](assets/manage-sets.png)
+
+![Manage set menu](assets/manage-set.png)
+
+</details>
+
+> To navigate between the menus, use:
+>
+> - <kbd>Enter</kbd> to select an option,
+> - <kbd>↑</kbd> & <kbd>↓</kbd> to cycle through the options,
+> - <kbd>/</kbd> to open a search prompt, and
+> - <kbd>Esc</kbd> to return to the previous menu/ quit.
+
+### `analyze` your inventory
+
+Find out how many of which resources (materials, currency, missing furnishings, etc.) are required to meet certain milestones.
 
 ```bash
 tubby analyze
 ```
 
-**TODO: SHOW OUTPUT**
+![Analyze menu](assets/analyze.png)
 
-**TODO: DESCRIBE COMMAND**
+<details>
 
-**TODO: ANALYZE MATERIALS**
+<summary>Materials</summary>
 
-**TODO: ANALYZE CURRENCY**
+![Analyze materials menu](assets/analyze-materials.png)
 
-**TODO: ANALYZE GIFTS**
+</details>
 
-**TODO: ANALYZE FURNISHINGS**
+<details>
 
-**TODO: ANALYZE SETS**
+<summary>Currency</summary>
 
-### `backup`
+![Analyze currency menu](assets/analyze-currency.png)
 
-**TODO: COMMAND**
+</details>
 
-### `reset`
+<details>
 
-**TODO: COMMAND**
+<summary>Furnishings</summary>
+
+![Analyze furnishings menu](assets/analyze-furnishings.png)
+
+![Analyze furnishing menu](assets/analyze-furnishing.png)
+
+</details>
+
+<details>
+
+<summary>Sets</summary>
+
+![Analyze sets menu](assets/analyze-sets.png)
+
+![Analyze set menu](assets/analyze-set.png)
+
+</details>
+
+### import / export `backup` inventory data
+
+Create backups of the information saved with Tubby and export them later.
+
+<details>
+
+<summary>Import backup from file</summary>
+
+```bash
+tubby backup -i backup/my_inventory.json
+```
+
+```
+Are you sure you want to import inventory from 'backup/my_inventory.json'? [y/N]: y
+Imported backup!
+```
+
+</details>
+
+<details>
+
+<summary>Export backup to file</summary>
+
+```bash
+tubby backup -e backup/my_inventory.json
+```
+
+```
+Are you sure you want to export inventory to 'backup/my_inventory.json'? [y/N]: y
+Exported backup!
+```
+
+</details>
+
+> Tubby uses `.json` files for storing data.
+
+### `reset` data
+
+Deletes information loaded into Tubby.
+
+```bash
+tubby reset
+```
+
+```
+Are you sure you want to delete your inventory? [y/N]: y
+Deleted inventory!
+```
+
+> This resets only the inventory data.
+> Metadata is not deleted.
 
 ## Contributing
 
@@ -96,10 +240,8 @@ Do you have a feature request, bug report, or patch? Great! Check out the [contr
 
 ## License
 
-Copyright (c) 2019 Kelvin DeCosta. Released under the MIT License. See [LICENSE](https://github.com/kelvindecosta/tubby/blob/master/LICENSE) for details.
+Copyright (c) 2020 Kelvin DeCosta. Released under the MIT License. See [LICENSE](https://github.com/kelvindecosta/tubby/blob/master/LICENSE) for details.
 
-## Disclaimer
-
-Tubby is not affiliated to miHoYo.
+This project is not affiliated with or endorsed by miHoYo.
 Genshin Impact and miHoYo are trademarks or registered trademarks of miHoYo.
 Genshin Impact © miHoYo.
