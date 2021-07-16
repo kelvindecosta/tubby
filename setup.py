@@ -1,9 +1,15 @@
+"""This module configures the main package"""
+
+
 from setuptools import find_packages, setup
+
 
 from src.meta import AUTHOR, DESCRIPTION, LICENSE, NAME, REPO_URL, VERSION
 
+
 with open("README.md", "r") as fs:
     LONG_DESCRIPTION = fs.read()
+
 
 setup(
     name=NAME,
@@ -26,6 +32,7 @@ setup(
     ],
     packages=list(map(lambda x: x.replace("src", NAME), find_packages("."))),
     package_dir={NAME: "src"},
+    package_data={"": ["data/*.txt"]},
     python_requires=">=3.9",
     install_requires=[
         "click",

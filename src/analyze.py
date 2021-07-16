@@ -336,6 +336,13 @@ def summarize_furnishings(metadata: dict, inventory: dict, analysis: dict):
 
 
 def summarize_sets(metadata: dict, inventory: dict, analysis: dict):
+    """Summarizes `analysis` for sets
+
+    Args:
+        metadata (dict): housing metadata
+        inventory (dict): user inventory
+        analysis (dict): useful statistics
+    """
     sets_md = metadata["sets"]
     sets = inventory["sets"]
     sets_anal = analysis["sets"]

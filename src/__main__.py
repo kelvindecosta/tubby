@@ -15,6 +15,7 @@ import click
 from .analyze import analyze
 from .backup import backup
 from .download import download
+from .info import info
 from .manage import manage
 from .meta import DESCRIPTION
 from .reset import reset
@@ -35,6 +36,7 @@ main.add_command(manage)
 main.add_command(analyze)
 main.add_command(backup)
 main.add_command(reset)
+main.add_command(info)
 
 
 if __name__ == "__main__":
