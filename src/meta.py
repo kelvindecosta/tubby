@@ -9,7 +9,7 @@ DESCRIPTION: str = "A utility for the Genshin Impact Housing system"
 """The package description"""
 
 
-VERSION: str = "1.0.1"
+VERSION: str = "1.0.2"
 """The current package version"""
 
 
