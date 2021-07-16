@@ -104,7 +104,7 @@ async def parse_costs_for_furnishings_from_depot(
         re.sub(r"Blueprint: ", "", get_tag_text(row.find_all("a")[1])): locale.atoi(
             get_tag_text(row.find_all("td")[1])
         )
-        for table in soup.find_all("table", {"class": "article-table"})[1:]
+        for table in soup.find_all("table", {"class": "article-table"})[1:3]
         for row in table.find("tbody").find_all("tr")[1:-1]
     }
 
@@ -178,29 +178,40 @@ async def parse_furnishing(
         get_tag_text(soup.find("h1", {"class": "page-header__title"})),
     )
 
-    category = list(
-        filter(
-            lambda t: len(t) > 0,
-            map(
-                get_tag_text,
-                filter(
-                    lambda t: t.find("img") is None,
-                    soup.find("div", {"data-source": "category"})
-                    .find("div", {"class": "pi-data-value"})
-                    .children,
+    category = (
+        list(
+            filter(
+                lambda t: len(t) > 0,
+                map(
+                    get_tag_text,
+                    filter(
+                        lambda t: t.find("img") is None,
+                        category_tag.find("div", {"class": "pi-data-value"}).children,
+                    ),
                 ),
-            ),
-        )
-    )[0]
+            )
+        )[0]
+        if (category_tag := soup.find("div", {"data-source": "category"})) is not None
+        else None
+    )
 
-    cost = (
-        locale.atoi(re.search(r"\d+", cost_match.group()).group())
-        if ((cost_match := re.search(r"Realm Currency.*\d+\.", soup.text)) is not None)
+    currency = (
+        locale.atoi(re.search(r"\d+", currency_match.group()).group())
+        if (
+            (currency_match := re.search(r"Realm Currency.*\d+\.", soup.text))
+            is not None
+        )
         else (
-            depot_cost
-            if (depot_cost := sources["depot"].get(name)) is not None
+            depot_currency
+            if (depot_currency := sources["depot"].get(name)) is not None
             else sources["chubby"].get(name)
         )
+    )
+
+    mora = (
+        locale.atoi(re.search(r"\d+", mora_match.group()).group())
+        if ((mora_match := re.search(r"Mora.*\d+\.", soup.text)) is not None)
+        else None
     )
 
     materials = (
@@ -230,7 +241,8 @@ async def parse_furnishing(
 
     furnishing = clean_dict(
         dict(
-            cost=cost,
+            currency=currency,
+            mora=mora,
             materials=materials,
         )
     )
@@ -262,9 +274,12 @@ async def parse_set(client: httpx.AsyncClient, url: str, metadata: dict, sources
         get_tag_text(soup.find("h1", {"class": "page-header__title"})),
     )
 
-    cost = (
-        locale.atoi(re.search(r"\d+", cost_match.group()).group())
-        if ((cost_match := re.search(r"Realm Currency.*\d+\.", soup.text)) is not None)
+    currency = (
+        locale.atoi(re.search(r"\d+", currency_match.group()).group())
+        if (
+            (currency_match := re.search(r"Realm Currency.*\d+\.", soup.text))
+            is not None
+        )
         else sources["depot"].get(name)
     )
 
@@ -303,7 +318,7 @@ async def parse_set(client: httpx.AsyncClient, url: str, metadata: dict, sources
 
     hset = clean_dict(
         dict(
-            cost=cost,
+            currency=currency,
             mora=mora,
             furnishings=furnishings,
             companions=companions,

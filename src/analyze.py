@@ -276,7 +276,7 @@ def summarize_furnishings(metadata: dict, inventory: dict, analysis: dict):
             furnishings[name].get("blueprint") is None,
             furnishings[name].get("crafted", False),
             not furnishings[name].get("blueprint", False),
-            furnishings_md[name].get("cost") is None,
+            not any(map(lambda k: k in ["currency", "mora"], furnishings_md[name])),
             -(x := furnishings[name]["owned"]) / (furnishings_anal[name] + x),
             name,
         ),
@@ -288,10 +288,10 @@ def summarize_furnishings(metadata: dict, inventory: dict, analysis: dict):
 
         menu = terminal_menu(
             [
-                f"""{"💰" if furnishings_md[name].get("cost") is not None else "🫖"} {f"📘{emoji_boolean(furnishings[name]['blueprint'])}🔨{emoji_boolean(furnishings[name]['crafted'])}" if furnishings_md[name].get("materials") is not None else " " * 8}  ({(owned := furnishings[name]["owned"]):2d}/{furnishings_anal[name] + owned:2d})  {name}"""
+                f"""{"💰" if any(map(lambda k: k in ["currency", "mora"],furnishings_md[name])) else "🫖"} {f"📘{emoji_boolean(furnishings[name]['blueprint'])}🔨{emoji_boolean(furnishings[name]['crafted'])}" if furnishings_md[name].get("materials") is not None else " " * 8}  ({(owned := furnishings[name]["owned"]):2d}/{furnishings_anal[name] + owned:2d})  {name}"""
                 for name in names
             ],
-            title="Furnishings\n\n  Legend:\n\n    🫖 = rewarded for trust rank / adeptal mirror quests / events\n    💰 = can be bought from realm depot / traveling salesman\n    📘 = blueprint owned\n    🔨 = crafted atleast once\n\n  Track the following:\n",
+            title="Furnishings\n\n  Legend:\n\n    🫖 = rewarded for trust rank / adeptal mirror quests / events\n    💰 = can be bought from realm depot / traveling salesman/ teyvat NPC\n    📘 = blueprint owned\n    🔨 = crafted atleast once\n\n  Track the following:\n",
             cursor_index=choice,
         )
 
@@ -318,7 +318,7 @@ def summarize_furnishings(metadata: dict, inventory: dict, analysis: dict):
                 else ""
             )
 
-            cost = get_cost_of_items(metadata, inventory, {f_name: num_missing * 10})
+            cost = get_cost_of_items(metadata, inventory, {f_name: num_missing})
             cost = (
                 "\n".join(
                     f"  {emoji(k)} {v:6d}×  {k}" for k, v in cost.items() if v != 0

@@ -87,7 +87,10 @@ def get_cost_of_items(metadata: dict, inventory: dict, items: dict) -> dict:
         (
             (
                 {
-                    "currency": furnishing.get("cost", 0)
+                    (
+                        key := "currency" if "currency" in furnishing else "mora"
+                    ): furnishing.get(key, 0)
+                    * (1 if key == "currency" else 1000)
                     * (
                         (1 if not inventory["furnishings"][name]["blueprint"] else 0)
                         if furnishing.get("materials") is not None
@@ -96,8 +99,8 @@ def get_cost_of_items(metadata: dict, inventory: dict, items: dict) -> dict:
                 }
             )
             if (furnishing := metadata["furnishings"].get(name)) is not None
-            else {"currency": hset["cost"]}
-            if "cost" in (hset := metadata["sets"][name])
+            else {"currency": hset["currency"]}
+            if "currency" in (hset := metadata["sets"][name])
             else {"mora": hset.get("mora", 0) * 1000}
             for name, num_required in items.items()
         ),
