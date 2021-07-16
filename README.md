@@ -9,7 +9,7 @@
   <br>
   <img alt="PyPI - Status" src="https://img.shields.io/pypi/status/tubby">
   <a target="_blank" href="https://pypi.python.org/pypi/tubby/"><img alt="pypi package" src="https://img.shields.io/pypi/v/tubby?color=light%20green"></a>
-  <a target="_blank" href="https://github.com/kelvindecosta/tubby/blob/master/LICENSE" title="License: MIT"><img alt="GitHub" src="https://img.shields.io/github/license/kelvindecosta/tubby?color=blue"></a>
+  <a target="_blank" href="https://github.com/kelvindecosta/tubby/blob/master/LICENSE" title="License: MIT"><img alt="GitHub" src="https://img.shields.io/github/license/kelvindecosta/tubby"></a>
 </p>
 
 <p align="center">
@@ -248,7 +248,7 @@ Do you have a feature request, bug report, or patch? Great! Check out the [contr
 
 ## License
 
-Copyright (c) 2020 Kelvin DeCosta. Released under the MIT License. See [LICENSE](https://github.com/kelvindecosta/tubby/blob/master/LICENSE) for details.
+Copyright (c) 2021 Kelvin DeCosta. Released under the MIT License. See [LICENSE](https://github.com/kelvindecosta/tubby/blob/master/LICENSE) for details.
 
 This project is not affiliated with or endorsed by miHoYo.
 Genshin Impact and miHoYo are trademarks or registered trademarks of miHoYo.

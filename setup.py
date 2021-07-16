@@ -25,7 +25,7 @@ setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
         "License :: OSI Approved :: MIT License",
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Topic :: Games/Entertainment :: Role-Playing",
         "Topic :: Terminals",
         "Topic :: Utilities",
