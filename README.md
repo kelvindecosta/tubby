@@ -10,6 +10,7 @@
   <img alt="PyPI - Status" src="https://img.shields.io/pypi/status/tubby">
   <a target="_blank" href="https://pypi.python.org/pypi/tubby/"><img alt="pypi package" src="https://img.shields.io/pypi/v/tubby?color=light%20green"></a>
   <a target="_blank" href="https://github.com/kelvindecosta/tubby/blob/master/LICENSE" title="License: MIT"><img alt="GitHub" src="https://img.shields.io/github/license/kelvindecosta/tubby"></a>
+  <img src="https://img.shields.io/badge/platform-unix-blue" alt="Platform : Unix"/>
 </p>
 
 <p align="center">

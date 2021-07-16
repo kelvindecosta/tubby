@@ -23,7 +23,7 @@ setup(
     license=LICENSE,
     classifiers=[
         "Programming Language :: Python :: 3",
-        "Operating System :: OS Independent",
+        "Operating System :: Unix",
         "License :: OSI Approved :: MIT License",
         "Development Status :: 5 - Production/Stable",
         "Topic :: Games/Entertainment :: Role-Playing",
